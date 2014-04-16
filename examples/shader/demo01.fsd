@@ -1,0 +1,11 @@
+#version 330 
+
+uniform sampler2D s_diffuse;
+
+smooth in vec2 p_texcoord;
+ 
+out vec4 f_color; 
+
+void main(void) {
+	f_color=texture2D(s_diffuse,p_texcoord);
+}

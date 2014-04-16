@@ -1,0 +1,27 @@
+#version 330 
+smooth in vec2 p_vec;
+ 
+out vec4 f_color; 
+
+#define ITERATIONS 40
+
+void main(void) {
+	float	re=p_vec.x;
+	float	im=p_vec.y;
+	float	c_re=re;
+	float	c_im=im;
+	float	t;
+	int i;
+	for(i=0;i<ITERATIONS;i++) {
+		t=re;
+		re=t*t-im*im+c_re;
+		im=2.0*t*im+c_im;
+		if (re*re+im*im>=4.0) break;
+	}
+	if (i>=ITERATIONS) {
+		float a=0.8-(i-40.0)*0.1;
+		f_color=vec4((i-40.0)*0.1,a,a,1.0);
+	} else {
+		f_color=vec4(0.0,i*0.04-1.0,i*0.04,1.0);
+	}
+}
