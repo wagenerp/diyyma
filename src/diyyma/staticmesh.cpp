@@ -313,8 +313,6 @@ int StaticMesh::loadDOFFile(const char *fn_in) {
   char *fn;
   int r=0;
   
-  clear();
-  
   if (!(fn=vfs_locate(fn_in,REPOSITORY_MASK_MESH))) {
     LOG_WARNING(
       "WARNING: unable to find static mesh file '%s'\n",
@@ -328,6 +326,8 @@ int StaticMesh::loadDOFFile(const char *fn_in) {
       fn)
     goto finalize;
   }
+  clear();
+  
   
   if (!xcor_create(&xco,data,cb)) {
     LOG_WARNING(
@@ -424,12 +424,16 @@ int StaticMesh::loadDOFFile(const char *fn_in) {
   } next: ;} while(xcor_chunk_next(xco));
   
   
+  _filename=strdup(fn);
+  _fileFormat=1;
+  
   r=1;
   
   finalize:
   
   if (data) free(data);
   if (xco) xcor_close(&xco);
+  if (fn) free((void*)fn);
   
   return r;
 }
@@ -454,8 +458,15 @@ int StaticMesh::loadOBJFile(const char *fn_in) {
     return 0;
   }
   
+  clear();
+  
   loadOBJ((char*)data);
+  
+  _filename=strdup(fn);
+  _fileFormat=0;
   free(data);
+  
+  free((void*)fn);
   
   return 1;
   
@@ -491,6 +502,9 @@ void StaticMesh::clear() {
     glDeleteBuffers(1,&_buffers[i].handle);
   }
   memset(_buffers,0,sizeof(_buffers));
+  
+  if (_filename) free((void*)_filename);
+  _filename=0;
 }
 
 void StaticMesh::reload() {
@@ -505,4 +519,20 @@ void StaticMesh::reload() {
 timestamp_t StaticMesh::filesTimestamp() {
   if (!_filename) return 0;
   return file_timestamp(_filename);
+}
+
+
+int StaticMesh::load(const char *fn) {
+  
+  size_t len=strlen(fn);
+  clear();
+  
+  if (len<4) return 0;
+  if (strcmp_ic(fn+len-4,".obj")==0) {
+    loadOBJFile(fn);
+  } else if (strcmp_ic(fn+len-4,".dof")==0) {
+    loadDOFFile(fn);
+  }
+  
+  return 1;
 }

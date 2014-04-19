@@ -75,19 +75,17 @@ Texture::Texture(): _filename(0), _slot(-1) {
 }
 
 Texture::Texture(const char *fn_in): _slot(-1) {
-  _filename=vfs_locate(fn_in,REPOSITORY_MASK_TEXTURE);
-  if (!_filename) {
-    glGenTextures(1,&_name);
-    _filename=strdup(fn_in);
-  } else {
-    _name=loadTextureFile(_filename);
-  }
+  load(fn_in);
 }
 
 Texture::~Texture() {
   if (_filename) free((void*)_filename);
   
   if (_name) glDeleteTextures(1,&_name);
+}
+
+GLuint Texture::name() {
+  return _name;
 }
 
 void Texture::reload() {
@@ -138,4 +136,15 @@ void Texture::Unbind(int slot) {
     __boundTextures[slot]=0;
   }
   
+}
+
+int Texture::load(const char *fn) {
+  if (_filename) free((void*)_filename);
+  
+  _filename=vfs_locate(fn,REPOSITORY_MASK_TEXTURE);
+  if (_filename) {
+    loadTextureFile(_filename,_name);
+  }
+  
+  return 1;
 }

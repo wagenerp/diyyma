@@ -29,87 +29,63 @@ struct SceneContext {
   Matrixf MV;
 };
 
-class ISceneNode : public RCObject  {
+class ISceneNode;
+class GroupSceneNode;
+
+class ISceneNode : public RCObject {
+  private:
+    ISceneNode *_parent;
+    ARRAY(ISceneNode*,_children);
   public:
-    ISceneNode() { }
+    ISceneNode(ISceneNode *parent);
     virtual ~ISceneNode();
+    
+    ISceneNode *parent();
+    
+    Matrixf absTransform();
+    
+    virtual Matrixf transform() =0;
+    
+};
+
+class IRenderableSceneNode : public ISceneNode {
+  public:
+    IRenderableSceneNode(ISceneNode *parent);
+    virtual ~IRenderableSceneNode();
     
     virtual void render(SceneContext ctx) =0;
 };
 
-class IPositionalSceneNode {
+class STSceneNode : public ISceneNode {
   public:
-    virtual ~IPositionalSceneNode();
+    STSceneNode(ISceneNode *parent);
+    virtual ~STSceneNode();
     
-    virtual Vector3f position()=0;
+    Matrixf staticTransform;
+    
+    virtual Matrixf transform();
+  
 };
 
-class IGroupSceneNode {
-  public:
-    virtual ~IGroupSceneNode();
-    
-    virtual size_t linkCount() =0;
-    virtual void appendLink(ISceneNode *link) =0;
-    virtual void insertLink(ISceneNode *link, int before) =0;
-    virtual void removeLink(ISceneNode *link) =0;
-    virtual void removeLinkIndex(int idx) =0;
-    virtual void clearLinks() =0;
-};
 
-class GroupSceneNode : public RCObject, public IGroupSceneNode {
-  private:
-    ISceneNode **_link_v;
-    size_t       _link_n;
-    double      *_distance_v;
-  public:
-    GroupSceneNode();
-    ~GroupSceneNode();
-    
-    virtual void render(SceneContext ctx);
-    
-    void sortByDistance(const Vector3f &origin, int descending);
-    
-    virtual size_t linkCount();
-    virtual void appendLink(ISceneNode *link);
-    virtual void insertLink(ISceneNode *link, int before);
-    virtual void removeLink(ISceneNode *link);
-    virtual void removeLinkIndex(int idx);
-    virtual void clearLinks();
-};
+#define MAX_STSTM_TEXTURES 8
 
-class OffsetSceneNode : public GroupSceneNode, public IPositionalSceneNode {
-  private:
-    Matrixf _transform;
-    Matrixf _transformInv;
-  public:
-    OffsetSceneNode();
-    ~OffsetSceneNode();
-    
-    
-    Matrixf transform();
-    Matrixf transformInv();
-    void    setTransform(const Matrixf &t);
-    
-    virtual void render(SceneContext ctx);
-    
-    virtual Vector3f position();
-};
-
-#define MAX_MESHSCENENODE_TEXTURES 8
-
-class MeshSceneNode : public ISceneNode {
+class STSTMSceneNode : public IRenderableSceneNode {
   private:
     StaticMesh *_mesh;
     Shader     *_shader;
-    Texture    *_textures[MAX_MESHSCENENODE_TEXTURES];
-    GLuint      _texture_locs[MAX_MESHSCENENODE_TEXTURES];
+    Texture    *_textures[MAX_STSTM_TEXTURES];
+    GLuint      _texture_locs[MAX_STSTM_TEXTURES];
     
     GLuint _u_MVP;
     GLuint _u_MV;
   
   public:
-    MeshSceneNode();
-    ~MeshSceneNode();
+    STSTMSceneNode(ISceneNode *parent);
+    ~STSTMSceneNode();
+    
+    Matrixf staticTransform;
+    
     
     StaticMesh *mesh();
     void setMesh(StaticMesh *m);
@@ -122,6 +98,9 @@ class MeshSceneNode : public ISceneNode {
     void addTexture(Texture *t, const char *loc);
     
     virtual void render(SceneContext ctx);
+    
+    virtual Matrixf transform();
+  
 };
 
 #endif

@@ -152,47 +152,24 @@ char *vfs_locate(const char *fn, int mask) {
   return 0;
 }
 
-
-template<class T, class K> void qs_swap(
-  T *objects, K *keys, 
-  size_t a, size_t b) {
-  { T t=objects[a]; objects[a]=objects[b]; objects[b]=t; }
-  { K t=keys[a]; keys[a]=keys[b]; keys[b]=t; }
+double randf() {
+  return (double)rand()/(double)RAND_MAX;
 }
 
 
-template<class T, class K> void quickSort(
-  T *objects, K *keys, 
-  size_t l, size_t r) {
-  int s;
-  T pr;
-  int i;
+int strcmp_ic(const char *a, const char *b) {
   
-  if (r<=l) return;
+  do {
+    if (
+      (*a!=*b)
+      && ( 
+        ((*a|0x20) != (*b|0x20))
+        || ((*a|0x20)<'a') || ((*a|0x20)>'z')
+        || ((*b|0x20)<'a') || ((*b|0x20)>'z')
+        )) return (int)*a-(int)*b;
+    a++,b++;
+    
+  } while(*a || *b);
   
-  s=(l+r)/2;
-  
-  if (keys[l]<keys[r]) {
-    if (keys[s]<keys[l]) s=l;
-    else if (keys[r]<keys[s]) s=r;
-  } else {
-    if (keys[s]<keys[r]) s=r;
-    else if (keys[l]<keys[s]) s=l;
-  }
-  
-  pr=keys[s];
-  swap(objects,keys,s,r);
-  
-  s=l;
-  for(i=l;i<r;i++) if (keys[i]<pr) swap(objects,keys,i,s++);
-  swap(objects,keys,s,r);
-  
-  
-  quickSort(objects,keys,l,s-1);
-  quickSort(objects,keys,s+1,r);
-}
-
-template<class T, class K> void sortByKeys(T *objects, K *keys, size_t n) {
-  
-  quickSort<T,K>(objects,keys,0,n-1);
+  return 0;
 }

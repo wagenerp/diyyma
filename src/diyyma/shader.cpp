@@ -30,25 +30,13 @@ Shader::Shader(): _linked(0) {
 }
 
 Shader::Shader(const char *basename): _linked(0) {
-  char buf[512];
-  
   int i;
   for(i=0;i<SHADER_PROGRAM_COUNT;i++) {
     _shader[i]=0;
     _sourceFiles[i]=0;
   }
   _program=glCreateProgram();
-  
-  _snprintf(buf,512,"%s.vsd",basename);
-  attachFile(buf,GL_VERTEX_SHADER);
-  
-  _snprintf(buf,512,"%s.fsd",basename);
-  attachFile(buf,GL_FRAGMENT_SHADER);
-  
-  _snprintf(buf,512,"%s.gsd",basename);
-  attachFile(buf,GL_GEOMETRY_SHADER);
-  
-  link();
+  load(basename);
 }
 
 Shader::Shader(const char *vsd, const char *fsd, const char *gsd): _linked(0) {
@@ -249,4 +237,30 @@ timestamp_t Shader::filesTimestamp() {
   }
   
   return r;
+}
+
+int Shader::load(const char *fn) {
+  char buf[512];
+  
+  int i;
+  _linked=0;
+  for(i=0;i<SHADER_PROGRAM_COUNT;i++) if (_shader[i]) {
+    glDetachShader(_program,_shader[i]);
+    glDeleteShader(_shader[i]);
+    _shader[i]=0;
+  }
+  _program=glCreateProgram();
+  
+  _snprintf(buf,512,"%s.vsd",fn);
+  attachFile(buf,GL_VERTEX_SHADER);
+  
+  _snprintf(buf,512,"%s.fsd",fn);
+  attachFile(buf,GL_FRAGMENT_SHADER);
+  
+  _snprintf(buf,512,"%s.gsd",fn);
+  attachFile(buf,GL_GEOMETRY_SHADER);
+  
+  link();
+  
+  return 1;
 }

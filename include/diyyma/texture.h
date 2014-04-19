@@ -71,6 +71,8 @@ class Texture : public IAsset {
     Texture(const char *fn_in);
     ~Texture();
     
+    GLuint name();
+    
     virtual void reload();
     virtual timestamp_t filesTimestamp();
     
@@ -79,6 +81,10 @@ class Texture : public IAsset {
     
     static void Unbind();
     static void Unbind(int slot);
+    
+    /** \brief Behaves exactly as the constructor.
+      */
+    virtual int load(const char *fn);
 };
 
 #endif

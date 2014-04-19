@@ -21,6 +21,7 @@
 #include "diyyma/texture.h"
 #include "diyyma/util.h"
 #include "diyyma/scenegraph.h"
+#include "diyyma/renderpass.h"
 
 
 #include "SDL/SDL.h"
@@ -36,6 +37,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
 
 
 #if DIYYMA_MAIN
@@ -85,6 +87,10 @@
 #define AUTORENDER 1
 #endif
 
+#ifndef ZBITS
+#define ZBITS 32
+#endif
+
 ////////////////////////////////////////////////////////////// timey-wimey stuff
 /* 
   SDL_main.h defines a makro called main for some reason, so just undef it here. 
@@ -123,6 +129,10 @@ void rerender() {
   _doRender=1;
 }
 
+void rand_init() {
+  srand(time(0));
+}
+
 int main(int argn, char **argv) {
   SDL_Window    *window  =0;
   SDL_Renderer  *renderer=0;
@@ -132,6 +142,8 @@ int main(int argn, char **argv) {
   int            vMinor, vMajor;
   double         timeScale,dt, time;
   Uint64         ticksLast=0, ticksBegin, ticks;
+  
+  rand_init();
   
   SDL_ASSERTJ(
     SDL_Init(SDL_INIT_VIDEO)==0,
@@ -149,6 +161,10 @@ int main(int argn, char **argv) {
   
   SDL_SetWindowTitle(window,TITLE);
     
+	ASSERT_WARN(
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE,ZBITS)==0,
+    "SDL_GL_SetAttribute")
+  
   SDL_ASSERTJ(
     context=SDL_GL_CreateContext(window),
     "SDL_GL_CreateContext",
@@ -166,6 +182,7 @@ int main(int argn, char **argv) {
 	ASSERT_WARN(
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION,GL_MINOR)==0,
     "SDL_GL_SetAttribute")
+  
   
   
   glewExperimental = GL_TRUE;

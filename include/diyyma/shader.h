@@ -116,6 +116,10 @@ class Shader : public IAsset {
     
     virtual void reload();
     virtual timestamp_t filesTimestamp();
+    
+    /** \brief behaves exactly like creating a new shader, specifying 
+      * fn as sole argument. */
+    virtual int load(const char *fn);
 };
 
 #endif

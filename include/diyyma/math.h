@@ -31,6 +31,10 @@ typedef Vector4<float> Vector4f;
 typedef Vector3<float> Vector3f;
 typedef Vector2<float> Vector2f;
 
+typedef Vector4<int> Vector4i;
+typedef Vector3<int> Vector3i;
+typedef Vector2<int> Vector2i;
+
 #define PI 3.141592653589793238462643
 
 template <class T> struct Matrix {
@@ -492,11 +496,13 @@ template<class T> struct Vector4 {
     }
     
     Vector4<T> normal() const {
-      T f=1.0/length;
+      T f=length();
+      if (f==0) f=1; else f=1.0/f;
       return Vector4(x*f,y*f,z*f,w*f);
     }
     void normalize() {
-      T f=1.0/length;
+      T f=length();
+      if (f==0) f=1; else f=1.0/f;
       set(x*f,y*f,z*f,w*f);
     }
     
@@ -544,10 +550,43 @@ template<class T> struct Vector3 {
       set(x*f,y*f,z*f);
     }
     Vector3<T> operator/(T f) const {
-      set(x/f,y/f,z/f);
+      return Vector3<T>(x/f,y/f,z/f);
     }
     void operator/=(T f) {
       set(x/f,y/f,z/f);
+    }
+    
+    Vector3<T> operator%(const Vector3<T> &v) const {
+      return Vector3(
+        y*v.z-z*v.y,
+        z*v.x-x*v.z,
+        x*v.y-y*v.x
+      );
+    }
+    
+    void operator%=(const Vector3<T> &v) {
+      set(
+        y*v.z-z*v.y,
+        z*v.x-x*v.z,
+        x*v.y-y*v.x
+      );
+    }
+    
+    
+    Vector3<T> operator^(const Vector3<T> &v) const {
+      return Vector3(
+        x*v.x,
+        y*v.y,
+        z*v.z
+      );
+    }
+    
+    void operator^=(const Vector3<T> &v) {
+      set(
+        x*v.x,
+        y*v.y,
+        z*v.z
+      );
     }
     
     
@@ -562,11 +601,13 @@ template<class T> struct Vector3 {
     }
     
     Vector3<T> normal() const {
-      T f=1.0/length;
+      T f=length();
+      if (f==0) f=1; else f=1.0/f;
       return Vector3(x*f,y*f,z*f);
     }
     void normalize() {
-      T f=1.0/length;
+      T f=length();
+      if (f==0) f=1; else f=1.0/f;
       set(x*f,y*f,z*f);
     }
     
@@ -575,6 +616,8 @@ template<class T> struct Vector3 {
     }
 
 };
+
+static Vector3f operator*(float f, const Vector3f &v) { return v*f; }
 
 
 template<class T> struct Vector2 {
@@ -633,11 +676,13 @@ template<class T> struct Vector2 {
     }
     
     Vector2<T> normal() const {
-      T f=1.0/length;
+      T f=length();
+      if (f==0) f=1; else f=1.0/f;
       return Vector2(x*f,y*f);
     }
     void normalize() {
-      T f=1.0/length;
+      T f=length();
+      if (f==0) f=1; else f=1.0/f;
       set(x*f,y*f);
     }
     

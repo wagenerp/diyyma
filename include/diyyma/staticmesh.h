@@ -77,6 +77,9 @@ class StaticMesh : public IAsset {
     virtual void reload();
     virtual timestamp_t filesTimestamp();
     
+    /** \brief Deduces the file type by extension (lowercase .ecn or .dof)
+      */
+    virtual int load(const char *fn);
 };
 
 #endif

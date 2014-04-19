@@ -23,7 +23,7 @@ FPSCameraComponent::FPSCameraComponent() {
   _mouseFlight=0;
   pos.set(0,0,0);
   angles.set(0,0,0);
-  P.setPerspective(80,1.0/0.75,0.1,1000);
+  P.setPerspective(80,1.0/0.75,1,1000);
   compute();
 }
 FPSCameraComponent::~FPSCameraComponent() { 
@@ -103,7 +103,7 @@ void FPSCameraComponent::iterate(double dt, double time) {
   if (_keys) {
     s=dt*12;
     
-    if (_keys&0x400) s*=9;
+    if (_keys&0x400) s*=50;
     if (_keys&0x800) s*=0.4;
     
     VInv=V.inverse();
@@ -180,7 +180,7 @@ int AssetReloader::operator[](const IAsset *asset) const {
 }
 
 void AssetReloader::operator+=(IAsset *asset) {
-  if (operator[](asset)!=-1) return;
+  if (operator[](asset)!=-1) { return; }
   _asset_v=(AssetRecord*)realloc(
     (void*)_asset_v,
     sizeof(AssetRecord)*(_asset_n+1));

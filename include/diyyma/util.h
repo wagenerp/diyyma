@@ -11,6 +11,7 @@
 #define DIYYMA_UTIL_H
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 
 #define SDL_ASSERT_WARN(r,name) { \
   if (!(r)) { \
@@ -74,6 +75,37 @@
 
 #define ERROR(...) { LOG_ERROR(__VA_ARGS__); return 0; }
 #define ERRORJ(lbl,...) { LOG_ERROR(__VA_ARGS__); goto lbl; }
+
+#define APPEND(n,o) \
+  (n##_v=(typeof(n##_v))realloc( \
+    (void*)(n##_v), \
+    sizeof(typeof(*n##_v))*((n##_n)+1)))[(n##_n)++]=o;
+
+#define ARRAY(t,n) \
+  t *n##_v; \
+  size_t n##_n; 
+  
+#define ARRAY_INIT(n) \
+  n##_v=0; \
+  n##_n=0;
+
+#define ARRAY_DESTROY(n) \
+  if (n##_v) { \
+    free((void*)n##_v); \
+    n##_v=0; \
+    n##_n=0; \
+  }
+
+#define ARRAY_SETSIZE(n,o) \
+  n##_v=(typeof(n##_v))realloc( \
+    (void*)(n##_v), \
+    sizeof(typeof(*n##_v))*(++(n##_n)));
+
+
+#define FOREACH(i,o,n) \
+  for((i)=0,(o)=(n##_v);(i)<(n##_n);(i)++,(o)++)
+
+
 
 #ifdef _MSC_VER
 #define _snprintf _snprintf_s
@@ -167,6 +199,8 @@ class IAsset : public RCObject {
     virtual void reload() =0;
     virtual timestamp_t filesTimestamp() =0;
     
+    virtual int load(const char *fn) =0;
+    
 };
 
 template<class T, class K> void sortByKeys(T *objects, K *keys, size_t n);
@@ -174,5 +208,101 @@ template<class T, class K> void sortByKeys(T *objects, K *keys, size_t n);
 template<class T, class K> void quickSort(
   T *objects, K *keys, 
   size_t l, size_t r);
+
+
+template<class T, class K> void qs_swap(
+  T *objects, K *keys, 
+  size_t a, size_t b) {
+  { T t=objects[a]; objects[a]=objects[b]; objects[b]=t; }
+  { K t=keys[a]; keys[a]=keys[b]; keys[b]=t; }
+}
+
+
+template<class T, class K> void quickSort(
+  T *objects, K *keys, 
+  size_t l, size_t r) {
+  int s;
+  K pr;
+  int i;
+  
+  if (r<=l) return;
+  
+  s=(l+r)/2;
+  
+  if (keys[l]<keys[r]) {
+    if (keys[s]<keys[l]) s=l;
+    else if (keys[r]<keys[s]) s=r;
+  } else {
+    if (keys[s]<keys[r]) s=r;
+    else if (keys[l]<keys[s]) s=l;
+  }
+  
+  pr=keys[s];
+  qs_swap<T,K>(objects,keys,s,r);
+  
+  s=l;
+  for(i=l;i<r;i++) if (keys[i]<pr) qs_swap<T,K>(objects,keys,i,s++);
+  qs_swap<T,K>(objects,keys,s,r);
+  
+  
+  quickSort(objects,keys,l,s-1);
+  quickSort(objects,keys,s+1,r);
+}
+
+template<class T, class K> void sortByKeys(T *objects, K *keys, size_t n) {
+  
+  quickSort<T,K>(objects,keys,0,n-1);
+}
+
+double randf();
+
+int strcmp_ic(const char *a, const char *b);
+
+template<class T> class AssetRegistry {
+  private:
+    ARRAY(T*,_assets);
+    ARRAY(const char*,_names);
+    
+    int _repository_mask;
+  
+  public:
+    AssetRegistry(int repository_mask) {
+      ARRAY_INIT(_assets);
+      ARRAY_INIT(_names);
+      _repository_mask=repository_mask;
+    }
+    
+    ~AssetRegistry() {
+      int idx;
+      const char **pstr;
+      
+      FOREACH(idx,pstr,_names) free((void*)*pstr);
+      
+      ARRAY_DESTROY(_assets);
+      ARRAY_DESTROY(_names);
+    }
+    
+    T *get(const char *name) {
+      int idx;
+      const char **pstr;
+      char *str;
+      FOREACH(idx,pstr,_names) if (strcmp(*pstr,name)==0) {
+        return _assets_v[idx];
+      }
+      
+      T *res=new T();
+      if (!res->load(name)) {
+        delete res;
+        return 0;
+      }
+      
+      APPEND(_assets,res);
+      APPEND(_names,strdup(name));
+      
+      return res;
+    }
+    
+};
+
 
 #endif
