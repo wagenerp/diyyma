@@ -88,7 +88,7 @@
 #endif
 
 #ifndef ZBITS
-#define ZBITS 32
+#define ZBITS 24
 #endif
 
 ////////////////////////////////////////////////////////////// timey-wimey stuff
@@ -156,7 +156,10 @@ int main(int argn, char **argv) {
     SDL_Init(SDL_INIT_VIDEO)==0,
     "SDL_Init",
     cleanup)
-  
+    
+	ASSERT_WARN(
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE,ZBITS)==0,
+    "SDL_GL_SetAttribute")
   
   SDL_ASSERTJ(
     SDL_CreateWindowAndRenderer(
@@ -168,9 +171,7 @@ int main(int argn, char **argv) {
   
   SDL_SetWindowTitle(window,TITLE);
     
-	ASSERT_WARN(
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE,ZBITS)==0,
-    "SDL_GL_SetAttribute")
+  
   
   SDL_ASSERTJ(
     context=SDL_GL_CreateContext(window),

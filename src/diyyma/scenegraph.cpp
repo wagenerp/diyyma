@@ -163,13 +163,11 @@ void STSTMSceneNode::render(SceneContext ctx) {
   
   ctx.MV*=staticTransform;
   ctx.MVP*=staticTransform;
-  
   if (_shader) {
     _shader->bind();
     for(i=0;i<MAX_STSTM_TEXTURES;i++)
       if (_texture_locs[i]) 
         glUniform1i(_texture_locs[i],i);
-    
     if (_u_V  ) glUniformMatrix4fv(_u_V  ,1,0,&ctx.V.a11);
     if (_u_MV ) glUniformMatrix4fv(_u_MV ,1,0,&ctx.MV.a11);
     if (_u_MVP) glUniformMatrix4fv(_u_MVP,1,0,&ctx.MVP.a11);

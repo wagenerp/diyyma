@@ -330,7 +330,7 @@ int strcmp_ic(const char *a, const char *b);
   * reused assets manually or loading it multiple times. 
   *
   * At the same time, the AssetRegistry performs virtual file system lookups
-  * to support multiple search paths per asset type. */
+  * to support multiple search paths per asset type.
   */
   
 template<class T> class AssetRegistry {
