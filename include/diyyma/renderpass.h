@@ -23,14 +23,14 @@ class SceneNodeRenderPass : public IComponent {
   private:
     ARRAY(IRenderableSceneNode*,_nodes);
     ARRAY(double,_distance);
-    SceneContext _context;
-    
+    ISceneContextSource *_contextSource;
   public:
     SceneNodeRenderPass();
     ~SceneNodeRenderPass();
     
     
-    SceneContext *context() { return &_context; }
+    ISceneContextSource *contextSource();
+    void setContextSource(ISceneContextSource *s);
     
     void sortByDistance(const Vector3f &center);
     /** \brief sorts by distance to the camera, taken from context()->MV.
@@ -44,6 +44,5 @@ class SceneNodeRenderPass : public IComponent {
     virtual void iterate(double dt, double time);
   
 };
-
 
 #endif

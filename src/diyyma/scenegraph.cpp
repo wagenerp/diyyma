@@ -5,7 +5,7 @@
 ISceneNode::ISceneNode(ISceneNode *parent) {
   ARRAY_INIT(_children);
   if (parent) {
-    parent->grab();
+    grab();
     _parent=parent;
     APPEND(_parent->_children,this);
   } else {
@@ -21,7 +21,8 @@ ISceneNode::~ISceneNode() {
   }
   ARRAY_DESTROY(_children);
   if (_parent) {
-    _parent->drop();
+    // this fucking line
+    //_parent->drop();
   }
 }
 
@@ -56,9 +57,44 @@ Matrixf STSceneNode::transform() {
 }
 
 
+
+LissajousSceneNode::LissajousSceneNode(ISceneNode *parent) :
+  ISceneNode(parent)
+  {
+  amplitude.set(1,1,1);
+  phase.set(0,0,0);
+  frequency.set(1,1,1);
+  _transform.setIdentity();
+}
+LissajousSceneNode::~LissajousSceneNode() {
+}
+
+Matrixf LissajousSceneNode::transform() {
+  return _transform;
+}
+
+void LissajousSceneNode::iterate(double dt, double t) {
+  
+  Vector3f p;
+  
+  p=phase+frequency*t;
+  p.set(cos(p.x),cos(p.y),cos(p.z));
+  p^=amplitude;
+  
+  _transform.a14=p.x;
+  _transform.a24=p.y;
+  _transform.a34=p.z;
+}
+
+
+
+
+
+
 STSTMSceneNode::STSTMSceneNode(ISceneNode *parent) : 
   _mesh(0), _shader(0), 
-  IRenderableSceneNode(parent)
+  IRenderableSceneNode(parent),
+  _lightController(0)
   {
   memset(_textures,0,sizeof(_textures));
   memset(_texture_locs,0,sizeof(_texture_locs));
@@ -72,6 +108,7 @@ STSTMSceneNode::~STSTMSceneNode() {
   
   for(i=0;i<MAX_STSTM_TEXTURES;i++)
     if (_textures[i]) _textures[i]->drop();
+  if (_lightController) _lightController->drop();
 }
 
 StaticMesh *STSTMSceneNode::mesh() { return _mesh; }
@@ -88,7 +125,8 @@ void STSTMSceneNode::setShader(Shader *s) {
   if (s) {
     s->grab();
     _u_MVP=s->locate("u_MVP");
-    _u_MV=s->locate("u_MV");
+    _u_MV =s->locate("u_MV");
+    _u_V  =s->locate("u_V");
   }
   if (_shader) _shader->drop();
   _shader=s;
@@ -132,8 +170,9 @@ void STSTMSceneNode::render(SceneContext ctx) {
       if (_texture_locs[i]) 
         glUniform1i(_texture_locs[i],i);
     
-    glUniformMatrix4fv(_u_MV ,1,0,&ctx.MV.a11);
-    glUniformMatrix4fv(_u_MVP,1,0,&ctx.MVP.a11);
+    if (_u_V  ) glUniformMatrix4fv(_u_V  ,1,0,&ctx.V.a11);
+    if (_u_MV ) glUniformMatrix4fv(_u_MV ,1,0,&ctx.MV.a11);
+    if (_u_MVP) glUniformMatrix4fv(_u_MVP,1,0,&ctx.MVP.a11);
   }
   
   for(i=0;i<MAX_STSTM_TEXTURES;i++)
@@ -155,4 +194,13 @@ void STSTMSceneNode::render(SceneContext ctx) {
 
 Matrixf STSTMSceneNode::transform() {
   return staticTransform;
+}
+
+
+LightController *STSTMSceneNode::lightController() { return _lightController; }
+void STSTMSceneNode::setLightController(LightController *l) {
+  if (l==_lightController) return;
+  if (_lightController) _lightController->drop();
+  _lightController=l;
+  if (_lightController) _lightController->grab();
 }

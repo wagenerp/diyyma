@@ -18,7 +18,7 @@
 #include "diyyma/util.h"
 #include "diyyma/xco.h"
 
-StaticMesh::StaticMesh() {
+StaticMesh::StaticMesh(): _filename(0) {
   memset(_buffers,0,sizeof(_buffers));
   _vertexCount=0;
 }

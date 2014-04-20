@@ -36,6 +36,10 @@ typedef Vector3<int> Vector3i;
 typedef Vector2<int> Vector2i;
 
 #define PI 3.141592653589793238462643
+#define DEGPERRAD (180.0/PI)
+#define RADPERDEG (PI/180.0)
+#define DEGTORAD(deg) ((deg)*(PI/180.0))
+#define RADTODEG(rad) ((rad)*(180.0/PI))
 
 template <class T> struct Matrix {
   public:
@@ -176,6 +180,32 @@ template <class T> struct Matrix {
         s,  c, 0, 0,
         0,  0, 1, 0,
         0,  0, 0, 1);
+    }
+    
+    void setRotation(float ang, const Vector3<T> &axis) {
+      Vector3<T> axis_u=axis.normal();
+      float cs=cos(ang),sn=sin(ang);
+      float x=axis_u.x, y=axis_u.y, z=axis_u.z;
+      float cn=1-cs;
+      set(
+        cn*x*x+  cs, cn*x*y-z*sn, cn*x*z+y*sn, 0,
+        cn*x*y+z*sn, cn*y*y+  cs, cn*y*z-x*sn, 0,
+        cn*x*z-y*sn, cn*y*z+x*sn, cn*z*z+  cs, 0,
+        0          , 0          , 0          , 1);
+      
+    }
+    
+    static Matrix<T> Rotation(T ang, const Vector3<T> &axis) {
+      Vector3<T> axis_u=axis.normal();
+      T cs=cos(ang),sn=sin(ang);
+      T x=axis_u.x, y=axis_u.y, z=axis_u.z;
+      T cn=1-cs;
+      return Matrix<T>(
+        cn*x*x+  cs, cn*x*y-z*sn, cn*x*z+y*sn, 0,
+        cn*x*y+z*sn, cn*y*y+  cs, cn*y*z-x*sn, 0,
+        cn*x*z-y*sn, cn*y*z+x*sn, cn*z*z+  cs, 0,
+        0          , 0          , 0          , 1);
+      
     }
     
     void setTranslation(T x, T y, T z) {

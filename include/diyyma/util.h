@@ -183,26 +183,88 @@ void vfs_registerPath(const char *path, int mask);
   */
 char *vfs_locate(const char *path, int mask);
 
+/** \brief Interface for RCObjects. 
+  *
+  * Used only on other interfaces that
+  * have a chance of being implemented / inherited by classes otherwise
+  * implementing / inheriting an RCObject. Make sure to perform virtual
+  * inheritance in such a case.
+  */
+class IRCObject {
+  public:
+    virtual ~IRCObject() { }
+    virtual void grab() =0;
+    virtual void drop() =0;
+};
 
-class RCObject {
+/** \brief Reference-count garbage collected objects.
+  *
+  * Since we may very well have objects being referenced by multiple 
+  * other objects, we perform simple reference counting to keep track of
+  * used and unused objects.
+  *
+  * Initially the reference counter is set to 0, meaning the object
+  * can be deleted just like any other, however if it is being assigned to
+  * other objects and therefore grabbed, the reference counter goes up
+  * and deletion should not be performed. ever.
+  *
+  * When the reference counter hits 0 (from above) it is automatically 
+  * deleted. Therefore, when you call drop() on a reference to an objects,
+  * you must not access it afterwards.
+  */
+class RCObject : public virtual IRCObject {
   private:
     int _refcount;
   public:
-    RCObject(): _refcount(0) { }
-    void grab() { _refcount++; }
-    void drop() { _refcount--; if (!_refcount) delete this; }
+    RCObject();
+    virtual ~RCObject() { }
+    
+    /** \brief increases the reference counter by one. */
+    virtual void grab();
+    
+    /** \brief decreases the reference counter by one, deleting the
+      * object if it hits zero. */
+    virtual void drop();
 };
 
+/** \brief Abstract class shared by all assets (shaders, textures, meshes, etc).
+  *
+  * This common class models the notion of file system connection and related 
+  * reloading of resources (e.g. for quickly reloading shaders in development
+  * without reloading the whole application)
+  */
 class IAsset : public RCObject {
   public:
     virtual ~IAsset() { }
+    
+    /** \brief Reloads whatever resources this asset loaded initially.*/
     virtual void reload() =0;
+    
+    /** \brief Returns the newest modification timestamp of all the files
+      * related to this asset. 
+      *
+      * Most often this is just one file (a texture, a mesh, a sound file, etc)
+      * however in the case of shaders, multiple files are loaded.
+      */
     virtual timestamp_t filesTimestamp() =0;
     
+    /** \brief For managed assets, this method makes it easier to manage them. 
+      * 
+      * Asset managers understand the notion of failure during resource loading
+      * and therefore require a return value on load.
+      */
     virtual int load(const char *fn) =0;
     
 };
 
+/** \brief Common interface for anything that iterates - mostly scene nodes.*/
+class IIterator {
+  public:
+    virtual ~IIterator() { }
+    virtual void iterate(double dt, double t) =0;
+};
+
+/** \brief It's always nice to implement a sorting algorithm. */
 template<class T, class K> void sortByKeys(T *objects, K *keys, size_t n);
 
 template<class T, class K> void quickSort(
@@ -258,6 +320,19 @@ double randf();
 
 int strcmp_ic(const char *a, const char *b);
 
+/** \brief Asset manager for a single type of asset. 
+  *
+  * Make sure T actually implements IAsset.
+  *
+  * Instead of loading assets directly via constructors, invoking the
+  * related manager's get method offers a way to obtain a reference
+  * to an asset already loaded, in contrast to either having to manage 
+  * reused assets manually or loading it multiple times. 
+  *
+  * At the same time, the AssetRegistry performs virtual file system lookups
+  * to support multiple search paths per asset type. */
+  */
+  
 template<class T> class AssetRegistry {
   private:
     ARRAY(T*,_assets);
@@ -266,6 +341,11 @@ template<class T> class AssetRegistry {
     int _repository_mask;
   
   public:
+    /** \brief Constructor.
+      *
+      * \param repository_mask Bitmask of VFS repositories to use when locating
+      * files.
+      */
     AssetRegistry(int repository_mask) {
       ARRAY_INIT(_assets);
       ARRAY_INIT(_names);
@@ -282,6 +362,14 @@ template<class T> class AssetRegistry {
       ARRAY_DESTROY(_names);
     }
     
+    /** \brief Returns a reference to an asset of the specified base name.
+      * 
+      * In most cases, the base name is actually a file name, but it does not
+      * need to be. 
+      * The individual asset class may perform name translation, such as
+      * the Shader type: the base name is appended with an extension per
+      * shader type. 
+      */
     T *get(const char *name) {
       int idx;
       const char **pstr;

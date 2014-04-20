@@ -109,17 +109,18 @@ void cleanup();
 int _running=0;
 int _doRender=0;
 
-IComponent **component_v=0;
-size_t       component_n=0;
+ARRAY(IComponent*,component);
+ARRAY(IIterator*,iterator);
 
 void registerComponent(IComponent *c) {
   c->grab();
-  component_v=(IComponent**)realloc(
-    (void*)component_v,
-    sizeof(IComponent*)*(component_n+1));
-  component_v[component_n++]=c;
+  APPEND(component,c);
 }
 
+void registerIterator(IIterator *iter) {
+  //iter->grab();
+  APPEND(iterator,iter);
+}
 
 void quit() {
   _running=0;
@@ -143,7 +144,13 @@ int main(int argn, char **argv) {
   double         timeScale,dt, time;
   Uint64         ticksLast=0, ticksBegin, ticks;
   
+  IComponent   **pcomp;
+  IIterator    **piter;
+  
   rand_init();
+  
+  ARRAY_INIT(component);
+  ARRAY_INIT(iterator);
   
   SDL_ASSERTJ(
     SDL_Init(SDL_INIT_VIDEO)==0,
@@ -227,7 +234,7 @@ int main(int argn, char **argv) {
           _running=0;
           break;
       }
-      for(i=0;i<component_n;i++) if (component_v[i]->event(&ev)) goto ev_done;
+      FOREACH(i,pcomp,component) if ((*pcomp)->event(&ev)) goto ev_done;
       event(&ev);
       
       ev_done:
@@ -239,7 +246,8 @@ int main(int argn, char **argv) {
     dt=(double)(ticks-ticksLast)*timeScale;
     ticksLast=ticks;
     
-    for(i=0;i<component_n;i++) component_v[i]->iterate(dt,time);
+    FOREACH(i,pcomp,component) (*pcomp)->iterate(dt,time);
+    FOREACH(i,piter,iterator) (*piter)->iterate(dt,time);
     iterate(dt,time);
     
     #if !AUTORENDER
@@ -248,7 +256,7 @@ int main(int argn, char **argv) {
     if (SDL_GL_GetCurrentContext()!=context)
       SDL_GL_MakeCurrent(window,context);
     render_pre();
-    for(i=0;i<component_n;i++) component_v[i]->render();
+    FOREACH(i,pcomp,component) (*pcomp)->render();
     render_post();
     SDL_GL_SwapWindow(window);
     #if !AUTORENDER
@@ -261,12 +269,10 @@ int main(int argn, char **argv) {
   
   cleanup:
   
-  for(i=0;i<component_n;i++) component_v[i]->drop();
-  if (component_v) {
-    free((void*)component_v);
-    component_v=0;
-    component_n=0;
-  }
+  FOREACH(i,pcomp,component) component_v[i]->drop();
+  //FOREACH(i,piter,iterator ) (*piter)->drop();
+  ARRAY_DESTROY(component);
+  ARRAY_DESTROY(iterator);
   
   if (context ) SDL_GL_DeleteContext(context);
   if (renderer) SDL_DestroyRenderer(renderer);

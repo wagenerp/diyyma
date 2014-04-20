@@ -152,6 +152,10 @@ char *vfs_locate(const char *fn, int mask) {
   return 0;
 }
 
+RCObject::RCObject() : _refcount(0) { }
+void RCObject::grab() { _refcount++; }
+void RCObject::drop() { _refcount--; if (!_refcount) delete this; }
+
 double randf() {
   return (double)rand()/(double)RAND_MAX;
 }

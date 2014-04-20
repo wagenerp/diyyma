@@ -74,7 +74,8 @@ Texture::Texture(): _filename(0), _slot(-1) {
   glGenTextures(1,&_name);
 }
 
-Texture::Texture(const char *fn_in): _slot(-1) {
+Texture::Texture(const char *fn_in): _filename(0), _slot(-1) {
+  glGenTextures(1,&_name);
   load(fn_in);
 }
 

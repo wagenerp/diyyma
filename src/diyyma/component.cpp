@@ -14,16 +14,19 @@
 #include "SDL/SDL.h"
 #include "GL/glew.h"
 
+#include "diyyma/scenegraph.h"
 #include "diyyma/component.h"
 #include "diyyma/util.h"
 
 
 FPSCameraComponent::FPSCameraComponent() { 
+  speed=1;
+  mouseSensitivity=1;
   _keys=0;
   _mouseFlight=0;
   pos.set(0,0,0);
   angles.set(0,0,0);
-  P.setPerspective(80,1.0/0.75,1,1000);
+  P.setPerspective(80,1.0/0.75,0.1,1000);
   compute();
 }
 FPSCameraComponent::~FPSCameraComponent() { 
@@ -83,8 +86,8 @@ int FPSCameraComponent::event(const SDL_Event *ev) {
       break;
     case SDL_MOUSEMOTION:
       if (_mouseFlight) {
-        angles.z+=ev->motion.xrel*0.01;
-        angles.y-=ev->motion.yrel*0.01;
+        angles.z+=ev->motion.xrel*0.01*mouseSensitivity;
+        angles.y-=ev->motion.yrel*0.01*mouseSensitivity;;
         
         if (angles.y> 1.57) angles.y= 1.57;
         if (angles.y<-1.57) angles.y=-1.57;
@@ -101,7 +104,7 @@ void FPSCameraComponent::iterate(double dt, double time) {
   Matrixf VInv;
   
   if (_keys) {
-    s=dt*12;
+    s=dt*12*speed;
     
     if (_keys&0x400) s*=50;
     if (_keys&0x800) s*=0.4;
@@ -134,6 +137,14 @@ void FPSCameraComponent::iterate(double dt, double time) {
     compute();
   }
   
+}
+
+SceneContext FPSCameraComponent::context() {
+  SceneContext ctx;
+  ctx.V=V;
+  ctx.MV=V;
+  ctx.MVP=VP;
+  return ctx;
 }
 
 AssetReloader::AssetReloader() : 

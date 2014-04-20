@@ -77,6 +77,136 @@ GLuint Shader::locate(const char *id) {
   return glGetUniformLocation(_program,id);
 }
 
+void handleShaderIncludes(
+  char *subject, size_t cc, 
+  void ***code_v, size_t **code_cb_v, char ***files_v, size_t *code_n,
+  int repositoryMask) {
+  
+  char *fn_new=0;
+  size_t cb_new;
+  void *data_new;
+  
+  char *p,*e, *fn_start, *q, *fn;
+  size_t cc_fn;
+  int i;
+  
+  if (!cc) cc=strlen(subject);
+  if (!cc) return;
+  
+  p=subject; e=subject+cc;
+  
+  while(p+10<e) {
+    if ((*p<' ')&&(*p!='\t') && (strncmp(p+1,"#include",8)==0)) {
+      // remember begin of #include and skip ahead
+      q=p+1;
+      p+=9;
+      
+      
+      while((p<e)&&((*p==' ')||(*p=='\t'))) p++;
+      
+      // read file name
+      fn_start=p;
+      while((p<e)&&(*p>' ')) p++;
+      if ((p>=e) || (p==fn_start)) {
+        LOG_WARNING("WARNING: file name expected in #include directive\n");
+        goto next;
+      }
+      cc_fn=(size_t)p-(size_t)fn_start;
+      
+      fn=(char*)malloc(cc_fn+1);
+      
+      memcpy(fn,fn_start,cc_fn);
+      fn[cc_fn]=0;
+      
+      // the last file is expected to be the source, without a name.
+      for(i=0;i<*code_n-1;i++) if (strcmp((*files_v)[i],fn)==0) {
+        goto finalize_stmt;
+      }
+      
+      
+      if (!(fn_new=vfs_locate(fn,repositoryMask))) {
+        LOG_WARNING(
+          "WARNING: unable to located #include'd file '%s'\n",
+          fn);
+        goto finalize_stmt;
+      }
+      
+      
+      
+      if (!readFile(fn_new,&data_new,&cb_new)) {
+        free((void*)fn_new);
+        LOG_WARNING(
+          "WARNING: unable to load #include'd file '%s' ('%s')\n",
+          fn,fn_new);
+        goto finalize_stmt;
+      }
+      
+      (*code_n)++;
+      
+      
+      
+      
+      *code_v   =(void** )realloc((void*)*code_v,   (*code_n)*sizeof(void*));
+      *code_cb_v=(size_t*)realloc((void*)*code_cb_v,(*code_n)*sizeof(size_t*));
+      *files_v  =(char** )realloc((void*)*files_v,  (*code_n)*sizeof(char*));
+      
+      
+      for(i=*code_n-1;i>0;i--) { 
+        (*code_v   )[i]=(*code_v   )[i-1];
+        (*code_cb_v)[i]=(*code_cb_v)[i-1];
+        (*files_v  )[i]=(*files_v  )[i-1];
+      }
+      
+      (*code_v   )[0]=data_new;
+      (*code_cb_v)[0]=cb_new;
+      (*files_v  )[0]=fn_new;
+      
+      handleShaderIncludes(
+        (char*)data_new,cb_new,
+        code_v,code_cb_v,files_v,code_n,
+        repositoryMask);
+      
+      finalize_stmt:
+      free((void*)fn);
+      
+      erase_stmt:
+      // erase #include statement so there will be no error
+      memset(q,' ',(size_t)p-(size_t)q);
+      
+      
+      next: ;
+    }
+    p++;
+    
+  }
+  
+}
+
+void handleShaderIncludes(
+  const char *subject, size_t cc, 
+  void ***code_v, size_t **code_cb_v, char ***files_v, size_t *code_n,
+  int repositoryMask) {
+  
+  if (!cc) cc=strlen(subject);
+  if (!cc) return;
+  
+  (*code_n)=1;
+  
+  *code_v   =(void** )malloc((*code_n)*sizeof(void*));
+  *code_cb_v=(size_t*)malloc((*code_n)*sizeof(size_t*));
+  *files_v  =(char** )malloc((*code_n)*sizeof(char*));
+  
+  (*code_v   )[0]=(void*)strdup(subject);
+  (*code_cb_v)[0]=cc;
+  (*files_v  )[0]=0;
+  
+  handleShaderIncludes(
+    (char*)(*code_v)[0],cc,
+    code_v,code_cb_v,files_v,code_n,
+    repositoryMask);
+  
+}
+
 int Shader::attach(const char *code, size_t cc, int mode) {
   int idx;
   GLint  ccCode;
@@ -84,6 +214,12 @@ int Shader::attach(const char *code, size_t cc, int mode) {
   GLint  r = 0;
   GLint  ccLog;
   char   *log;
+  
+  int i;
+  void **code_v;
+  size_t *code_cb_v;
+  char **files_v;
+  size_t code_n;
   
   if ((idx=SHADER_INDEX(mode))==-1) {
     LOG_WARNING("WARNING: invalid shader program mode: %i\n",mode);
@@ -105,7 +241,25 @@ int Shader::attach(const char *code, size_t cc, int mode) {
   
   if (cc) ccCode=cc;
   else    ccCode=strlen(code);
-  glShaderSource(shd,1,&code,&ccCode);
+  
+  handleShaderIncludes(
+    code,cc,
+    &code_v,&code_cb_v,&files_v,&code_n,
+    REPOSITORY_MASK_SHADER);
+  
+  glShaderSource(shd,code_n,(const char**)code_v,(const int*)code_cb_v);
+  
+  for(i=0;i<code_n;i++) {
+    free((void*)code_v[i]);
+    if (files_v[i]) free((void*)files_v[i]);
+  }
+  
+  free((void*)code_v);
+  free((void*)code_cb_v);
+  free((void*)files_v);
+  
+  
+  //glShaderSource(shd,1,&code,&ccCode);
   glCompileShader(shd);
   
   glGetShaderiv(shd,GL_COMPILE_STATUS,&r);
@@ -115,7 +269,7 @@ int Shader::attach(const char *code, size_t cc, int mode) {
     glGetShaderInfoLog(shd,ccLog+1,&ccLog,log);
     LOG_WARNING(
       "WARNING: shader program %i compilation error:\n  %s\n",
-      mode, log);
+      idx, log);
     
     free((void*)log);
     return 0;
