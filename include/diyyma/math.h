@@ -514,6 +514,9 @@ template<class T> struct Vector4 {
       set(x/f,y/f,z/f,w/f);
     }
     
+    T operator*(Vector4<T> &v) const {
+      return x*v.x+y*v.y+z*v.z+w*v.w;
+    }
     
     T length() const {
       return (T)sqrt(x*x+y*y+z*z+w*w);
@@ -584,6 +587,9 @@ template<class T> struct Vector3 {
     }
     void operator/=(T f) {
       set(x/f,y/f,z/f);
+    }
+    T operator*(Vector3<T> &v) const {
+      return x*v.x+y*v.y+z*v.z;
     }
     
     Vector3<T> operator%(const Vector3<T> &v) const {
@@ -692,6 +698,9 @@ template<class T> struct Vector2 {
     }
     void operator/=(T f) {
       set(x/f,y/f);
+    }
+    T operator*(Vector2<T> &v) const {
+      return x*v.x+y*v.y;
     }
     
     
