@@ -33,6 +33,8 @@ Matrixf ISceneNode::absTransform() {
   
   for(ISceneNode *n=_parent;n;n=n->_parent) 
     r=n->transform()*r;
+
+  return r;
 }
 
 

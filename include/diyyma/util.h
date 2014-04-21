@@ -76,10 +76,17 @@
 #define ERROR(...) { LOG_ERROR(__VA_ARGS__); return 0; }
 #define ERRORJ(lbl,...) { LOG_ERROR(__VA_ARGS__); goto lbl; }
 
+#ifdef _MSC_VER
+#define APPEND(n,o) \
+  (n##_v=(decltype(n##_v))realloc( \
+    (void*)(n##_v), \
+    sizeof(decltype(*n##_v))*((n##_n)+1)))[(n##_n)++]=o;
+#else
 #define APPEND(n,o) \
   (n##_v=(typeof(n##_v))realloc( \
     (void*)(n##_v), \
     sizeof(typeof(*n##_v))*((n##_n)+1)))[(n##_n)++]=o;
+#endif
 
 #define ARRAY(t,n) \
   t *n##_v; \
@@ -96,10 +103,17 @@
     n##_n=0; \
   }
 
+#ifdef _MSC_VER
+#define ARRAY_SETSIZE(n,o) \
+  n##_v=(decltype(n##_v))realloc( \
+    (void*)(n##_v), \
+    sizeof(decltype(*n##_v))*(++(n##_n)));
+#else
 #define ARRAY_SETSIZE(n,o) \
   n##_v=(typeof(n##_v))realloc( \
     (void*)(n##_v), \
     sizeof(typeof(*n##_v))*(++(n##_n)));
+#endif
 
 
 #define FOREACH(i,o,n) \
