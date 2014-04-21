@@ -477,6 +477,15 @@ template<class T> struct Vector4 {
     Vector4(): x(0), y(0), z(0), w(0) { }
     Vector4(T a, T b, T c, T d):
       x(a),y(b),z(c),w(d) { }
+
+	Vector4(Vector2<T> &v, T c, T d) :
+	  x(v.x), y(v.y), z(c), w(d) { }
+
+	Vector4(Vector3<T> &v, T d) :
+	  x(v.x), y(v.y), z(v.z), w(d) { }
+
+	Vector4(Vector4<T> &v) :
+	  x(v.x), y(v.y), z(v.z), w(v.w) { }
     
     void set(T a, T b, T c, T d) {
       x=a; y=b; z=c; w=d;
@@ -552,6 +561,17 @@ template<class T> struct Vector3 {
     Vector3(): x(0), y(0), z(0) { }
     Vector3(T a, T b, T c):
       x(a),y(b),z(c) { }
+	/** \brief Copy constructor which cuts of last element 
+	* in 4 dimensional vector
+	*/
+	Vector3(Vector4<T> &v) : 
+	  x(v.x), y(v.y), z(v.z) { } 
+
+	Vector3(Vector2<T> &v, T z) : 
+	  x(v.x), y(v.y), z(z) { }
+
+	Vector3(Vector3<T> &v) : 
+	  x(v.x), y(v.y), z(v.z) { } 
     
     void set(T a, T b, T c) {
       x=a; y=b; z=c;
@@ -592,6 +612,7 @@ template<class T> struct Vector3 {
       return x*v.x+y*v.y+z*v.z;
     }
     
+	/** \brief cross-product */
     Vector3<T> operator%(const Vector3<T> &v) const {
       return Vector3(
         y*v.z-z*v.y,
@@ -641,6 +662,7 @@ template<class T> struct Vector3 {
       if (f==0) f=1; else f=1.0/f;
       return Vector3(x*f,y*f,z*f);
     }
+
     void normalize() {
       T f=length();
       if (f==0) f=1; else f=1.0/f;
@@ -663,6 +685,18 @@ template<class T> struct Vector2 {
     Vector2(): x(0), y(0) { }
     Vector2(T a, T b):
       x(a),y(b) { }
+	Vector2(Vector2& v) : 
+	  x(v.x), y(v.y) { } 
+	/** \brief Copy constructor which cuts of last element 
+	* in 4 dimensional vector
+	*/
+	Vector2(Vector4& v) : 
+	  x(v.x), y(v.y) { }
+	/** \brief Copy constructor which cuts of last element 
+	* in 4 dimensional vector
+	*/
+	Vector2(Vector3& v) : 
+	  x(v.x), y(v.y) { } 
     
     void set(T a, T b) {
       x=a; y=b;

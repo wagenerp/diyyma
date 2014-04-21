@@ -41,6 +41,14 @@ void FPSCameraComponent::compute() {
   VP=P*V;
 }
 
+Vector3f FPSCameraComponent::up() {
+	return Vector3f(V.row2()).normal();
+}
+
+Vector3f FPSCameraComponent::view() {
+	return -Vector3f(V.row3()).normal();
+}
+
 void FPSCameraComponent::render() {
   
 }

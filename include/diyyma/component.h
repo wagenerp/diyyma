@@ -87,6 +87,10 @@ class FPSCameraComponent : public IComponent, public ISceneContextSource {
       * may be set manually or computed in the constructor.
       */
     void compute();
+	/** \brief Returns normalized view direction in world cordinates*/
+	Vector3f view();
+	/** \brief Returns normalized up direction in world cordinates*/
+	Vector3f up();
     
     virtual void render();
     virtual int event(const SDL_Event *ev);
