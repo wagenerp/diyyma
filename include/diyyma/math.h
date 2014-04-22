@@ -477,15 +477,13 @@ template<class T> struct Vector4 {
     Vector4(): x(0), y(0), z(0), w(0) { }
     Vector4(T a, T b, T c, T d):
       x(a),y(b),z(c),w(d) { }
+    
+    Vector4(const Vector2<T> &v, T c, T d) :
+      x(v.x), y(v.y), z(c), w(d) { }
 
-	Vector4(Vector2<T> &v, T c, T d) :
-	  x(v.x), y(v.y), z(c), w(d) { }
-
-	Vector4(Vector3<T> &v, T d) :
-	  x(v.x), y(v.y), z(v.z), w(d) { }
-
-	Vector4(Vector4<T> &v) :
-	  x(v.x), y(v.y), z(v.z), w(v.w) { }
+    Vector4(const Vector3<T> &v, T d) :
+      x(v.x), y(v.y), z(v.z), w(d) { }
+    
     
     void set(T a, T b, T c, T d) {
       x=a; y=b; z=c; w=d;
@@ -554,6 +552,8 @@ template<class T> struct Vector4 {
     
 };
 
+static Vector4f operator*(float f, const Vector4f &v) { return v*f; }
+
 template<class T> struct Vector3 {
   public:
     T x,y,z;
@@ -561,17 +561,15 @@ template<class T> struct Vector3 {
     Vector3(): x(0), y(0), z(0) { }
     Vector3(T a, T b, T c):
       x(a),y(b),z(c) { }
-	/** \brief Copy constructor which cuts of last element 
-	* in 4 dimensional vector
-	*/
-	Vector3(Vector4<T> &v) : 
-	  x(v.x), y(v.y), z(v.z) { } 
+    
+    /** \brief Copy constructor which cuts of last element 
+      * in 4 dimensional vector
+      */
+    Vector3(const Vector4<T> &v) : 
+      x(v.x), y(v.y), z(v.z) { } 
 
-	Vector3(Vector2<T> &v, T z) : 
-	  x(v.x), y(v.y), z(z) { }
-
-	Vector3(Vector3<T> &v) : 
-	  x(v.x), y(v.y), z(v.z) { } 
+    Vector3(const Vector2<T> &v, T z) : 
+      x(v.x), y(v.y), z(z) { }
     
     void set(T a, T b, T c) {
       x=a; y=b; z=c;
@@ -612,7 +610,7 @@ template<class T> struct Vector3 {
       return x*v.x+y*v.y+z*v.z;
     }
     
-	/** \brief cross-product */
+    /** \brief cross-product */
     Vector3<T> operator%(const Vector3<T> &v) const {
       return Vector3(
         y*v.z-z*v.y,
@@ -685,18 +683,16 @@ template<class T> struct Vector2 {
     Vector2(): x(0), y(0) { }
     Vector2(T a, T b):
       x(a),y(b) { }
-	Vector2(Vector2& v) : 
-	  x(v.x), y(v.y) { } 
-	/** \brief Copy constructor which cuts of last element 
-	* in 4 dimensional vector
-	*/
-	Vector2(Vector4& v) : 
-	  x(v.x), y(v.y) { }
-	/** \brief Copy constructor which cuts of last element 
-	* in 4 dimensional vector
-	*/
-	Vector2(Vector3& v) : 
-	  x(v.x), y(v.y) { } 
+    /** \brief Copy constructor which cuts of last element 
+      * in 4 dimensional vector
+      */
+    Vector2(const Vector4<T> &v) : 
+      x(v.x), y(v.y) { }
+    /** \brief Copy constructor which cuts of last element 
+      * in 4 dimensional vector
+      */
+    Vector2(const Vector3<T> &v) : 
+      x(v.x), y(v.y) { } 
     
     void set(T a, T b) {
       x=a; y=b;
@@ -764,5 +760,6 @@ template<class T> struct Vector2 {
     }
 
 };
+static Vector2f operator*(float f, const Vector2f &v) { return v*f; }
 
 #endif
