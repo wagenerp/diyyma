@@ -762,4 +762,39 @@ template<class T> struct Vector2 {
 };
 static Vector2f operator*(float f, const Vector2f &v) { return v*f; }
 
+/** \brief Mirror point along plane
+  * \param point Point which shall be mirrored
+  * \param plane Plane along point shall be mirrored
+  */
+static Vector3f mirrorPoint(const Vector3f &point, const Vector4f &plane){
+  return point - (2*(plane*Vector4f(point, 1.f))*(Vector3f(plane).normal()));
+}
+
+/** \brief Computes intersection point between line and plane
+  * \param origin Starting point of the line
+  * \param direction Direction the line is pointing
+  * \param plane Plane which is tested for intersection
+  * \return Returns the intersection point in 3D space. The fourth
+  *         component may by -1 : Intersection point lies behind origin
+  *                          +1 : Intersection point lies in front of origin
+  *                           0 : No intersection
+  */
+static Vector4f intersectPlane(const Vector3f &origin, const Vector3f &direction,
+	                       const Vector4f &plane){
+  if(Vector3f(plane)*Vector3f(direction) == 0){
+    //No intersection Point
+    return Vector4f(0.f, 0.f, 0.f, 0.f);
+  } else {
+    float t = -1.f*(Vector4f(plane)*Vector4f(origin, 1.f))/
+		           (Vector3f(plane)*Vector3f(direction));
+    Vector4f intersectionPoint;
+
+    intersectionPoint = Vector4f(origin+(t*direction), 1.f);
+	if(t < 0.f){
+		intersectionPoint.w = -1.f;
+	}
+
+	return intersectionPoint;
+  }
+}
 #endif
