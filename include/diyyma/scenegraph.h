@@ -204,6 +204,7 @@ class STSTMSceneNode : public IRenderableSceneNode {
     GLuint _u_MVP;
     GLuint _u_MV;
     GLuint _u_V;
+    GLuint _u_time;
   
   public:
     STSTMSceneNode(ISceneNode *parent);

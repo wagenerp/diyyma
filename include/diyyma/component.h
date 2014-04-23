@@ -63,6 +63,8 @@ class FPSCameraComponent : public IComponent, public ISceneContextSource {
     int _mouseFlight_x;
     int _mouseFlight_y;
     
+    double _time;
+    
   public:
     Matrixf V, VP, P;
     /** \brief Current camera position, in world coordinates*/

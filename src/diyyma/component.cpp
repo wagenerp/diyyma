@@ -20,6 +20,7 @@
 
 
 FPSCameraComponent::FPSCameraComponent() { 
+  _time=0;
   speed=1;
   mouseSensitivity=1;
   _keys=0;
@@ -110,6 +111,7 @@ void FPSCameraComponent::iterate(double dt, double time) {
   Vector3f v;
   float s;
   Matrixf VInv;
+  _time=time;
   
   if (_keys) {
     s=dt*12*speed;
@@ -152,6 +154,7 @@ SceneContext FPSCameraComponent::context() {
   ctx.V=V;
   ctx.MV=V;
   ctx.MVP=VP;
+  ctx.time=_time;
   return ctx;
 }
 

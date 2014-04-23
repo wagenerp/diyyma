@@ -126,9 +126,10 @@ void STSTMSceneNode::setShader(Shader *s) {
   if (s==_shader) return;
   if (s) {
     s->grab();
-    _u_MVP=s->locate("u_MVP");
-    _u_MV =s->locate("u_MV");
-    _u_V  =s->locate("u_V");
+    _u_MVP =s->locate("u_MVP");
+    _u_MV  =s->locate("u_MV");
+    _u_V   =s->locate("u_V");
+    _u_time=s->locate("u_time");
   }
   if (_shader) _shader->drop();
   _shader=s;
@@ -170,9 +171,10 @@ void STSTMSceneNode::render(SceneContext ctx) {
     for(i=0;i<MAX_STSTM_TEXTURES;i++)
       if (_texture_locs[i]) 
         glUniform1i(_texture_locs[i],i);
-    if (_u_V  ) glUniformMatrix4fv(_u_V  ,1,0,&ctx.V.a11);
-    if (_u_MV ) glUniformMatrix4fv(_u_MV ,1,0,&ctx.MV.a11);
-    if (_u_MVP) glUniformMatrix4fv(_u_MVP,1,0,&ctx.MVP.a11);
+    if (_u_V   ) glUniformMatrix4fv(_u_V  ,1,0,&ctx.V.a11);
+    if (_u_MV  ) glUniformMatrix4fv(_u_MV ,1,0,&ctx.MV.a11);
+    if (_u_MVP ) glUniformMatrix4fv(_u_MVP,1,0,&ctx.MVP.a11);
+    if (_u_time) glUniform1f(_u_time,ctx.time);
   }
   
   for(i=0;i<MAX_STSTM_TEXTURES;i++)
