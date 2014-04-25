@@ -122,4 +122,19 @@ class Shader : public IAsset {
     virtual int load(const char *fn);
 };
 
+
+class IShaderReferrer {
+  protected:
+    Shader *_shader;
+  
+  public:
+    IShaderReferrer();
+    ~IShaderReferrer();
+    
+    Shader *shader();
+    void setShader(Shader *s);
+    
+    virtual void updateUniforms() =0;
+};
+
 #endif

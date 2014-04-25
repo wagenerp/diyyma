@@ -418,3 +418,20 @@ int Shader::load(const char *fn) {
   
   return 1;
 }
+
+
+IShaderReferrer::IShaderReferrer() : _shader(0) { }
+IShaderReferrer::~IShaderReferrer() {
+  if (_shader) _shader->drop();
+}
+
+Shader *IShaderReferrer::shader() { return _shader; }
+void IShaderReferrer::setShader(Shader *s) {
+  if (s==_shader) return;
+  if (_shader) _shader->drop();
+  _shader=s;
+  if (_shader) {
+    _shader->grab();
+    updateUniforms();
+  }
+}

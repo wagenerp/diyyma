@@ -115,7 +115,6 @@
     sizeof(typeof(*n##_v))*(++(n##_n)));
 #endif
 
-
 #define FOREACH(i,o,n) \
   for((i)=0,(o)=(n##_v);(i)<(n##_n);(i)++,(o)++)
 

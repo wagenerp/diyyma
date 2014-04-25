@@ -149,3 +149,46 @@ int Texture::load(const char *fn) {
   
   return 1;
 }
+
+/*
+ITextureReferrer<N>::ITextureReferrer() :
+  _shaderReferrer(0)
+  {
+  memset(_textures,0,sizeof(_textures));
+  memset(_texture_locs,0,sizeof(_texture_locs));
+}
+ITextureReferrer<int N>::~ITextureReferrer() {
+  int i;
+  for(i=0;i<N;i++)
+    if (_textures[i]) _textures[i]->drop();
+}
+
+Texture *ITextureReferrer<int N>::texture(size_t index) {
+  if (index>=N) return 0;
+  return _textures[index];
+}
+size_t ITextureReferrer<int N>::textureCount() {
+  int i;
+  
+  for(i=0;i<N;i++)
+    if (!_textures[i]) break;
+  return i;
+}
+
+void ITextureReferrer<int N>::addTexture(Texture *t, const char *loc) {
+  int i;
+  Shader shd=0;
+  if (_shaderReferrer) shd=_shaderReferrer->shader();
+  for(i=0;i<N;i++)
+    if (!_textures[i]) {
+      t->grab();
+      _textures[i]=t;
+      if (shd)
+        _texture_locs[i]=shd->locate(loc);
+      else 
+        _texture_locs[i]=0;
+    }
+  
+}
+
+*/

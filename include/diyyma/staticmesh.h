@@ -82,4 +82,19 @@ class StaticMesh : public IAsset {
     virtual int load(const char *fn);
 };
 
+
+class IStaticMeshReferrer {
+  protected:
+    StaticMesh *_mesh;
+  
+  public:
+    IStaticMeshReferrer();
+    ~IStaticMeshReferrer();
+    
+    StaticMesh *mesh();
+    void setMesh(StaticMesh *m);
+    
+};
+
+
 #endif

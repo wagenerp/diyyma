@@ -29,6 +29,136 @@ StaticMesh::~StaticMesh() {
     glDeleteBuffers(1,&_buffers[i].handle);
 }
 
+/** \brief A single material found in a .mtl file referenced by an OBJ file.
+  * 
+  * \todo Implement various properties.
+  */
+
+class OBJMaterial : public RCObject {
+  private:
+    char *_name;
+    
+  public:
+    OBJMaterial(const char *name) {
+      _name=strdup(name);
+    }
+    ~OBJMaterial() {
+      free((void*)_name);
+    }
+    
+    const char *name() { return _name; }
+    
+    void bind() { }
+    void unbind() { }
+};
+
+/** \brief A collection of OBJMaterials as a single asset. This represents
+  * a single .mtl file.
+  * 
+  */
+class OBJMaterialLibrary : public IAsset {
+  private:
+    ARRAY(OBJMaterial*,_materials);
+    char *_filename;
+    
+    void _clear() {
+      int idx;
+      OBJMaterial** pmat;
+      FOREACH(idx,pmat,_materials) (*pmat)->drop();
+      // ARRAY_DESTROY actually clears the array.
+      ARRAY_DESTROY(_materials);
+    }
+    
+  public:
+    
+    OBJMaterialLibrary() : _filename(0) { 
+      ARRAY_INIT(_materials);
+    }
+    
+    ~OBJMaterialLibrary() {
+      _clear();
+      if (_filename) free((void*)_filename);
+    }
+    
+    OBJMaterial *find(const char *name) {
+      int idx;
+      OBJMaterial** pmat;
+      FOREACH(idx,pmat,_materials) if (strcmp((*pmat)->name(),name)==0) {
+        return *pmat;
+      }
+      return 0;
+    }
+    
+    virtual void reload() {
+      if (_filename) load(_filename);
+    }
+    
+    virtual timestamp_t filesTimestamp() {
+      if (!_filename) return 0;
+      return file_timestamp(_filename);
+    } 
+    
+    /** \brief For managed assets, this method makes it easier to manage them. 
+      * 
+      * Asset managers understand the notion of failure during resource loading
+      * and therefore require a return value on load.
+      */
+    virtual int load(const char *fn) {
+      void *data;
+      size_t cb;
+      
+      if (_filename) { 
+        free((void*)_filename);
+        _filename=0;
+      }
+      
+      if (!(_filename=vfs_locate(fn,REPOSITORY_MASK_MESH))) {
+        LOG_WARNING("WARNING: material library %s not found.\n",fn);
+        return 0;
+      }
+      
+      if (!readFile(_filename,&data,&cb)) {
+        LOG_WARNING("WARNING: unable to load material library %s.\n",_filename);
+        free((void*)_filename);
+        _filename=0;
+        return 0;
+      }
+      
+      _filename=strdup(fn);
+      
+      
+    }
+    
+};
+
+/** \brief Handles all the faces for a single material in a .obj file
+  *
+  * As all vertices are stored in a single buffer (sorted by materials),
+  * we have to remember the slice of vertices belonging to a material
+  * and the material they belong to.
+  */
+class OBJMaterialApplication {
+  private:
+    OBJMaterial *_material;
+    int _vertexOffset;
+    int _vertexCount;
+  public:
+    OBJMaterialApplication(OBJMaterial *mat, int first, int count) :
+      _vertexOffset(first), _vertexCount(count) {
+      _material=mat;
+      if (_material) _material->grab();
+    }
+    ~OBJMaterialApplication() {
+      if (_material)_material->drop();
+    }
+    
+    void render() {
+      if (_material) _material->bind();
+      glDrawArrays(GL_TRIANGLES,_vertexOffset,_vertexCount);
+      if (_material) _material->unbind();
+    }
+};
+
 /** \brief Crude loader for wavefront (OBJ) meshes.
   * 
   * \todo implement groups and material loading
@@ -52,7 +182,7 @@ class OBJLoader {
     size_t nNormals;
     size_t nTexCoords;
     size_t nTriangles;
-    
+
     int i;
     float buf[6];
     int bufi[9];
@@ -174,12 +304,6 @@ class OBJLoader {
           normals=(float*)realloc((void*)normals,3*sizeof(float)*(nNormals+1));
           memcpy(normals+nNormals*3,buf,3*sizeof(float));
           nNormals++;
-        } else if (strncmp(q,"n",ql)==0) {
-          if (!(lnfloat(buf)&&lnfloat(buf+1)&&lnfloat(buf+2))) goto next;
-          
-          normals=(float*)realloc((void*)normals,3*sizeof(float)*(nNormals+1));
-          memcpy(normals+nNormals*3,buf,3*sizeof(float));
-          nNormals++;
         } else if (strncmp(q,"vt",ql)==0) {
           if (!(lnfloat(buf)&&lnfloat(buf+1))) goto next;
           
@@ -197,7 +321,7 @@ class OBJLoader {
             memcpy(bufi+3,bufi+6,3*sizeof(int));
             
           }
-		}
+        }
         
         next:
         newline();
@@ -535,4 +659,20 @@ int StaticMesh::load(const char *fn) {
   }
   
   return 1;
+}
+
+
+IStaticMeshReferrer::IStaticMeshReferrer() : _mesh(0) { }
+IStaticMeshReferrer::~IStaticMeshReferrer() {
+  if (_mesh) _mesh->drop();
+}
+
+StaticMesh *IStaticMeshReferrer::mesh() { return _mesh; }
+void IStaticMeshReferrer::setMesh(StaticMesh *m) {
+  if (m==_mesh) return;
+  if (_mesh) _mesh->drop();
+  _mesh=m;
+  if (_mesh) {
+    _mesh->grab();
+  }
 }

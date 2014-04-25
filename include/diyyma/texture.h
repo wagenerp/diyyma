@@ -23,6 +23,7 @@
 
 #include "GL/glew.h"
 #include "diyyma/util.h"
+#include "diyyma/shader.h"
 
 struct DTFHead {
   u_int32_t channels;  ///<\brief Number of color channels in the stream.
@@ -85,6 +86,56 @@ class Texture : public IAsset {
     /** \brief Behaves exactly as the constructor.
       */
     virtual int load(const char *fn);
+};
+
+
+template<int N> class ITextureReferrer {
+  protected:
+    Texture    *_textures[N];
+    GLuint      _texture_locs[N];
+    
+    IShaderReferrer *_shaderReferrer;
+    
+  public:
+    ITextureReferrer():
+      _shaderReferrer(0)
+      {
+      memset(_textures,0,sizeof(_textures));
+      memset(_texture_locs,0,sizeof(_texture_locs));
+    }
+    ~ITextureReferrer() {
+      int i;
+      for(i=0;i<N;i++)
+        if (_textures[i]) _textures[i]->drop();
+    }
+    
+    Texture *texture(size_t index) {
+      if (index>=N) return 0;
+      return _textures[index];
+    }
+    size_t textureCount() {
+      int i;
+      
+      for(i=0;i<N;i++)
+        if (!_textures[i]) break;
+      return i;
+    }
+    void addTexture(Texture *t, const char *loc) {
+      int i;
+      Shader *shd=0;
+      if (_shaderReferrer) shd=_shaderReferrer->shader();
+      for(i=0;i<N;i++)
+        if (!_textures[i]) {
+          t->grab();
+          _textures[i]=t;
+          if (shd)
+            _texture_locs[i]=shd->locate(loc);
+          else 
+            _texture_locs[i]=0;
+        }
+      
+    }
+    
 };
 
 #endif

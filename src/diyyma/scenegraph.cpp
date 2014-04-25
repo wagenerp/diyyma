@@ -94,70 +94,27 @@ void LissajousSceneNode::iterate(double dt, double t) {
 
 
 STSTMSceneNode::STSTMSceneNode(ISceneNode *parent) : 
-  _mesh(0), _shader(0), 
   IRenderableSceneNode(parent),
-  _lightController(0)
+  _lightController(0),
+  IShaderReferrer(),
+  IStaticMeshReferrer(),
+  ITextureReferrer<MAX_STSTM_TEXTURES>()
   {
-  memset(_textures,0,sizeof(_textures));
-  memset(_texture_locs,0,sizeof(_texture_locs));
   staticTransform.setIdentity();
+  _shaderReferrer=this;
 }
 
 STSTMSceneNode::~STSTMSceneNode() {
-  int i;
-  if (_mesh) _mesh->drop();
-  if (_shader) _shader->drop();
-  
-  for(i=0;i<MAX_STSTM_TEXTURES;i++)
-    if (_textures[i]) _textures[i]->drop();
   if (_lightController) _lightController->drop();
-}
-
-StaticMesh *STSTMSceneNode::mesh() { return _mesh; }
-void STSTMSceneNode::setMesh(StaticMesh *m) {
-  if (m==_mesh) return;
-  if (m) m->grab();
-  if (_mesh) _mesh->drop();
-  _mesh=m;
-}
-
-Shader *STSTMSceneNode::shader() { return _shader; }
-void STSTMSceneNode::setShader(Shader *s) {
-  if (s==_shader) return;
-  if (s) {
-    s->grab();
-    _u_MVP =s->locate("u_MVP");
-    _u_MV  =s->locate("u_MV");
-    _u_V   =s->locate("u_V");
-    _u_time=s->locate("u_time");
-  }
-  if (_shader) _shader->drop();
-  _shader=s;
-}
-
-Texture *STSTMSceneNode::texture(size_t index) {
-  if (index>=MAX_STSTM_TEXTURES) return 0;
-  return _textures[index];
-}
-size_t STSTMSceneNode::textureCount() {
-  int i;
   
-  for(i=0;i<MAX_STSTM_TEXTURES;i++)
-    if (!_textures[i]) break;
-  return i;
 }
-void STSTMSceneNode::addTexture(Texture *t, const char *loc) {
-  int i;
-  for(i=0;i<MAX_STSTM_TEXTURES;i++)
-    if (!_textures[i]) {
-      t->grab();
-      _textures[i]=t;
-      if (_shader)
-        _texture_locs[i]=_shader->locate(loc);
-      else 
-        _texture_locs[i]=0;
-    }
-  
+
+
+void STSTMSceneNode::updateUniforms() {
+  _u_MVP =_shader->locate("u_MVP");
+  _u_MV  =_shader->locate("u_MV");
+  _u_V   =_shader->locate("u_V");
+  _u_time=_shader->locate("u_time");
 }
 
 void STSTMSceneNode::render(SceneContext ctx) {

@@ -192,13 +192,12 @@ class LissajousSceneNode : public ISceneNode, public IIterator {
   * Optionally, a LightController can be assigned to be queried for assigning
   * light source information to the underlying shader.
   */
-class STSTMSceneNode : public IRenderableSceneNode {
+class STSTMSceneNode : 
+  public IRenderableSceneNode, 
+  public IShaderReferrer,
+  public IStaticMeshReferrer,
+  public ITextureReferrer<MAX_STSTM_TEXTURES> {
   private:
-    StaticMesh *_mesh;
-    Shader     *_shader;
-    Texture    *_textures[MAX_STSTM_TEXTURES];
-    GLuint      _texture_locs[MAX_STSTM_TEXTURES];
-    
     LightController *_lightController;
     
     GLuint _u_MVP;
@@ -212,19 +211,10 @@ class STSTMSceneNode : public IRenderableSceneNode {
     
     Matrixf staticTransform;
     
-    
-    StaticMesh *mesh();
-    void setMesh(StaticMesh *m);
-    
-    Shader *shader();
-    void setShader(Shader *s);
-    
-    Texture *texture(size_t index);
-    size_t textureCount();
-    void addTexture(Texture *t, const char *loc);
-    
     LightController *lightController();
     void setLightController(LightController *l);
+    
+    virtual void updateUniforms();
     
     virtual void render(SceneContext ctx);
     
