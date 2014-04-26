@@ -2,6 +2,168 @@
 #include "diyyma/scenegraph.h"
 #include "diyyma/util.h"
 
+ISceneContextReferrer::ISceneContextReferrer() :
+  _contextSource(0) {
+}
+
+ISceneContextReferrer::~ISceneContextReferrer() {
+  if (_contextSource) _contextSource->drop();
+}
+
+
+ISceneContextSource *ISceneContextReferrer::contextSource() { 
+  return _contextSource; 
+}
+void ISceneContextReferrer::setContextSource(ISceneContextSource *s) {
+  if (s==_contextSource) return;
+  if (_contextSource) _contextSource->drop();
+  _contextSource=s;
+  if (_contextSource) _contextSource->grab();
+}
+
+
+ILightControllerReferrer::ILightControllerReferrer() :
+  _lightController(0) {
+}
+
+ILightControllerReferrer::~ILightControllerReferrer() {
+  if (_lightController) _lightController->drop();
+}
+
+
+ILightController *ILightControllerReferrer::lightController() { 
+  return _lightController; 
+}
+void ILightControllerReferrer::setLightController(ILightController *l) {
+  if (l==_lightController) return;
+  if (_lightController) _lightController->drop();
+  _lightController=l;
+  if (_lightController) _lightController->grab();
+}
+
+
+const char *light_uniforms[][MAX_LIGHTS]={
+  { 
+    "u_light[0].ambient_c",
+    "u_light[0].diffuse_c",
+    "u_light[0].specular_c",
+    "u_light[0].position_v",
+    "u_light[0].falloff_factor",
+    "u_light[0].flags"
+  },
+  { 
+    "u_light[1].ambient_c",
+    "u_light[1].diffuse_c",
+    "u_light[1].specular_c",
+    "u_light[1].position_v",
+    "u_light[1].falloff_factor",
+    "u_light[1].flags"
+  },
+  { 
+    "u_light[2].ambient_c",
+    "u_light[2].diffuse_c",
+    "u_light[2].specular_c",
+    "u_light[2].position_v",
+    "u_light[2].falloff_factor",
+    "u_light[2].flags"
+  },
+  { 
+    "u_light[3].ambient_c",
+    "u_light[3].diffuse_c",
+    "u_light[3].specular_c",
+    "u_light[3].position_v",
+    "u_light[3].falloff_factor",
+    "u_light[3].flags"
+  },
+  { 
+    "u_light[4].ambient_c",
+    "u_light[4].diffuse_c",
+    "u_light[4].specular_c",
+    "u_light[4].position_v",
+    "u_light[4].falloff_factor",
+    "u_light[4].flags"
+  },
+  { 
+    "u_light[5].ambient_c",
+    "u_light[5].diffuse_c",
+    "u_light[5].specular_c",
+    "u_light[5].position_v",
+    "u_light[5].falloff_factor",
+    "u_light[5].flags"
+  },
+  { 
+    "u_light[6].ambient_c",
+    "u_light[6].diffuse_c",
+    "u_light[6].specular_c",
+    "u_light[6].position_v",
+    "u_light[6].falloff_factor",
+    "u_light[6].flags"
+  },
+  { 
+    "u_light[7].ambient_c",
+    "u_light[7].diffuse_c",
+    "u_light[7].specular_c",
+    "u_light[7].position_v",
+    "u_light[7].falloff_factor",
+    "u_light[7].flags"
+  }
+  
+};
+
+
+LightController::LightController() {
+  ARRAY_INIT(_nodes);
+}
+
+LightController::~LightController() {
+  int idx;
+  LightSceneNode **pnode;
+  FOREACH(idx,pnode,_nodes) {
+    (*pnode)->drop();
+  }
+  ARRAY_DESTROY(_nodes);
+}
+
+void LightController::operator+=(LightSceneNode *node) {
+  if (_nodes_n>=MAX_LIGHTS) return;
+  node->grab();
+  APPEND(_nodes,node);
+}
+
+
+void LightController::activate(Shader *shd) {
+  GLuint loc;
+  int i;
+  Matrixf V, MV;
+  Vector3f p;
+  
+  loc=shd->locate("u_lightCount");
+  
+  if (!loc) return;
+  
+  glUniform1i(loc,_nodes_n);
+  
+  if (_contextSource)
+    V=_contextSource->context().V;
+  else
+    V.setIdentity();
+  
+  
+  for(i=0;i<_nodes_n;i++) {
+    MV=_nodes_v[i]->absTransform()*V;
+    p.set(MV.a14,MV.a24,MV.a34);
+    glUniform3fv(shd->locate(light_uniforms[i][0]),1,&_nodes_v[i]->param.ambient_c.x);
+    glUniform3fv(shd->locate(light_uniforms[i][1]),1,&_nodes_v[i]->param.diffuse_c.x);
+    glUniform3fv(shd->locate(light_uniforms[i][2]),1,&_nodes_v[i]->param.specular_c.x);
+    glUniform3fv(shd->locate(light_uniforms[i][3]),1,&p.x);
+    glUniform1f (shd->locate(light_uniforms[i][4]),_nodes_v[i]->param.falloff_factor);
+    glUniform1ui(shd->locate(light_uniforms[i][5]),_nodes_v[i]->param.flags);
+  }
+  
+}
+
+
+
 ISceneNode::ISceneNode(ISceneNode *parent) {
   ARRAY_INIT(_children);
   if (parent) {
@@ -95,7 +257,6 @@ void LissajousSceneNode::iterate(double dt, double t) {
 
 STSTMSceneNode::STSTMSceneNode(ISceneNode *parent) : 
   IRenderableSceneNode(parent),
-  _lightController(0),
   IShaderReferrer(),
   IStaticMeshReferrer(),
   ITextureReferrer<MAX_STSTM_TEXTURES>()
@@ -119,10 +280,12 @@ void STSTMSceneNode::updateUniforms() {
 
 void STSTMSceneNode::render(SceneContext ctx) {
   int i;
+  Matrixf M;
   if (!_mesh) return;
   
-  ctx.MV*=staticTransform;
-  ctx.MVP*=staticTransform;
+  M=absTransform();
+  ctx.MV*=M;
+  ctx.MVP*=M;
   if (_shader) {
     _shader->bind();
     for(i=0;i<MAX_STSTM_TEXTURES;i++)
@@ -132,10 +295,12 @@ void STSTMSceneNode::render(SceneContext ctx) {
     if (_u_MV  ) glUniformMatrix4fv(_u_MV ,1,0,&ctx.MV.a11);
     if (_u_MVP ) glUniformMatrix4fv(_u_MVP,1,0,&ctx.MVP.a11);
     if (_u_time) glUniform1f(_u_time,ctx.time);
+    if (_lightController) _lightController->activate(_shader);
   }
   
   for(i=0;i<MAX_STSTM_TEXTURES;i++)
     if (_textures[i]) _textures[i]->bind(i);
+  
   
   _mesh->bind();
   _mesh->send();
@@ -153,13 +318,4 @@ void STSTMSceneNode::render(SceneContext ctx) {
 
 Matrixf STSTMSceneNode::transform() {
   return staticTransform;
-}
-
-
-LightController *STSTMSceneNode::lightController() { return _lightController; }
-void STSTMSceneNode::setLightController(LightController *l) {
-  if (l==_lightController) return;
-  if (_lightController) _lightController->drop();
-  _lightController=l;
-  if (_lightController) _lightController->grab();
 }

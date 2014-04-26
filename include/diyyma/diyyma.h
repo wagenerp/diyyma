@@ -9,6 +9,10 @@
   * appropriate entry points.
   */
 
+/*
+#ifndef _DIYYMA_DIYYMA_H
+#define _DIYYMA_DIYYMA_H
+*/
 #define IL_STATIC_LIB
 #define GLEW_NO_GLU
 #define GLEW_STATIC
@@ -284,4 +288,7 @@ int main(int argn, char **argv) {
 }
 
 
+#endif // DIYYMA_MAIN
+/*
 #endif
+*/

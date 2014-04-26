@@ -61,7 +61,39 @@ class ISceneContextSource : public virtual IRCObject {
     virtual SceneContext context() =0;
 };
 
+class ISceneContextReferrer {
+  protected:
+    ISceneContextSource *_contextSource;
+  
+  public:
+    ISceneContextReferrer();
+    ~ISceneContextReferrer();
+    
+    ISceneContextSource *contextSource();
+    void setContextSource(ISceneContextSource *l);
+};
+
 class LightSceneNode;
+
+class ILightController : public virtual RCObject {
+  public:
+    virtual ~ILightController() { }
+    virtual void activate(Shader *shd)=0;
+    
+};
+
+class ILightControllerReferrer {
+  protected:
+    ILightController *_lightController;
+  
+  public:
+    ILightControllerReferrer();
+    ~ILightControllerReferrer();
+    
+    ILightController *lightController();
+    void setLightController(ILightController *l);
+    
+};
 
 /** \brief Controller for one or more light sources to be applied on a shader.
   *
@@ -70,26 +102,25 @@ class LightSceneNode;
   * This is done so that coordinate transformation does not have to be done
   * in the shader.
   */
-class LightController : public RCObject {
+class LightController : 
+  public ILightController,
+  public ISceneContextReferrer {
+  
   private:
     ARRAY(LightSceneNode*, _nodes);
-    ISceneContextSource *_contextSource;
   public:
     LightController();
     ~LightController();
     
-    
-    ISceneContextSource *contextSource();
-    void setContextSource(ISceneContextSource *s);
-    
     /** \brief Transmits all the lighting information handled by us
       * to a shader by setting a bunch of uniforms.
       */
-    void activate(Shader *shd);
+    virtual void activate(Shader *shd);
     
     void operator+=(LightSceneNode *node);
     
 };
+
 
 class ISceneNode;
 /** \brief Abstract base class of all scene nodes.
@@ -102,7 +133,7 @@ class ISceneNode;
   * Note that children are not explicitly added but a parent-child relation
   * is established through the constructor.
   */
-class ISceneNode : public RCObject {
+class ISceneNode : public virtual RCObject {
   private:
     ISceneNode *_parent;
     ARRAY(ISceneNode*,_children);
@@ -196,9 +227,9 @@ class STSTMSceneNode :
   public IRenderableSceneNode, 
   public IShaderReferrer,
   public IStaticMeshReferrer,
-  public ITextureReferrer<MAX_STSTM_TEXTURES> {
+  public ITextureReferrer<MAX_STSTM_TEXTURES>,
+  public ILightControllerReferrer {
   private:
-    LightController *_lightController;
     
     GLuint _u_MVP;
     GLuint _u_MV;
@@ -210,9 +241,6 @@ class STSTMSceneNode :
     ~STSTMSceneNode();
     
     Matrixf staticTransform;
-    
-    LightController *lightController();
-    void setLightController(LightController *l);
     
     virtual void updateUniforms();
     

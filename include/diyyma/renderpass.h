@@ -57,7 +57,6 @@
 
 class IRenderPass : public IComponent {
   protected:
-    ISceneContextSource *_contextSource;
     
     ARRAY(GLenum,_drawBuffers);
     GLuint _frameBufferObject;
@@ -66,10 +65,6 @@ class IRenderPass : public IComponent {
   public:
     IRenderPass();
     ~IRenderPass();
-    
-    ISceneContextSource *contextSource();
-    void setContextSource(ISceneContextSource *s);
-    
     
     /** \brief Any compbination of RP_* flags 
       */
@@ -99,7 +94,9 @@ class IRenderPass : public IComponent {
     virtual void endPass();
 };
 
-class SceneNodeRenderPass : public IRenderPass {
+class SceneNodeRenderPass : 
+  public IRenderPass,
+  public ISceneContextReferrer {
   private:
     ARRAY(IRenderableSceneNode*,_nodes);
     ARRAY(double,_distance);
@@ -130,7 +127,8 @@ class SceneNodeRenderPass : public IRenderPass {
 class ScreenQuadRenderPass : 
   public IRenderPass,
   public IShaderReferrer,
-  public ITextureReferrer<MAX_SCREENQUAD_TEXTURES> {
+  public ITextureReferrer<MAX_SCREENQUAD_TEXTURES>,
+  public ISceneContextReferrer {
   
   private:
     GLuint _b_vertices;
