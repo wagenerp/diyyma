@@ -3,7 +3,6 @@
 #include "GL/glew.h"
 
 IRenderPass::IRenderPass(): 
-  _setFBO(0),
   _frameBufferObject(0),
   flags(0) {
   ARRAY_INIT(_drawBuffers);
@@ -15,7 +14,7 @@ IRenderPass::~IRenderPass() {
 
 
 void IRenderPass::setFBO(GLuint fbo) {
-  _setFBO=1;
+  _frameBufferObject=fbo;
   flags|=RP_SET_FBO;
 }
 void IRenderPass::assignDrawBuffer(GLenum buf) {
@@ -45,6 +44,8 @@ void IRenderPass::endPass() {
 }
 
 SceneNodeRenderPass::SceneNodeRenderPass() {
+  transformLeft.setIdentity();
+  transformRight.setIdentity();
   ARRAY_INIT(_nodes);
 }
 
@@ -117,11 +118,22 @@ void SceneNodeRenderPass::render() {
     ctx.MV*=m;
     ctx.MVP*=m;
   }
+  if (flags&RP_TRANSFORM_LEFT) {
+    ctx.MV=transformLeft*ctx.MV;
+    ctx.MVP=ctx.P*ctx.MV;
+  }
+  
+  if (flags&RP_TRANSFORM_RIGHT) {
+    ctx.MV*=transformRight;
+    ctx.MVP*=transformRight;
+  }
   
   if (flags&RP_SORT_NODES) 
     sortByDistance(Vector3f(ctx.MV.a14,ctx.MV.a24,ctx.MV.a34));
   beginPass();
   
+  if (flags&RP_CLEAR)
+    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
   
   FOREACH(idx,pnode,_nodes) {
     (*pnode)->render(ctx);

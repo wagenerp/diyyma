@@ -151,6 +151,7 @@ void FPSCameraComponent::iterate(double dt, double time) {
 
 SceneContext FPSCameraComponent::context() {
   SceneContext ctx;
+  ctx.P=P;
   ctx.V=V;
   ctx.MV=V;
   ctx.MVP=VP;

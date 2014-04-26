@@ -259,7 +259,12 @@ STSTMSceneNode::STSTMSceneNode(ISceneNode *parent) :
   IRenderableSceneNode(parent),
   IShaderReferrer(),
   IStaticMeshReferrer(),
-  ITextureReferrer<MAX_STSTM_TEXTURES>()
+  ITextureReferrer<MAX_STSTM_TEXTURES>(),
+  _u_MVP(0),
+  _u_MV(0),
+  _u_V(0),
+  _u_P(0),
+  _u_time(0)
   {
   staticTransform.setIdentity();
   _shaderReferrer=this;
@@ -275,6 +280,7 @@ void STSTMSceneNode::updateUniforms() {
   _u_MVP =_shader->locate("u_MVP");
   _u_MV  =_shader->locate("u_MV");
   _u_V   =_shader->locate("u_V");
+  _u_P   =_shader->locate("u_P");
   _u_time=_shader->locate("u_time");
 }
 
@@ -291,6 +297,7 @@ void STSTMSceneNode::render(SceneContext ctx) {
     for(i=0;i<MAX_STSTM_TEXTURES;i++)
       if (_texture_locs[i]) 
         glUniform1i(_texture_locs[i],i);
+    if (_u_P   ) glUniformMatrix4fv(_u_P  ,1,0,&ctx.V.a11);
     if (_u_V   ) glUniformMatrix4fv(_u_V  ,1,0,&ctx.V.a11);
     if (_u_MV  ) glUniformMatrix4fv(_u_MV ,1,0,&ctx.MV.a11);
     if (_u_MVP ) glUniformMatrix4fv(_u_MVP,1,0,&ctx.MVP.a11);

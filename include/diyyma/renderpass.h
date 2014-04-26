@@ -55,12 +55,36 @@
   */
 #define RP_SORT_NODES 0x40
 
+
+/** \brief Clears both depth and color component prior to running the actual
+  * render pass.
+  */
+#define RP_CLEAR 0x80
+
+
+/** \brief Causes the left-transformation matrix of a renderpass to be used.
+  *
+  * The new Model-View-Projection matrix will be 
+  *       
+  *      Projection * TransformLeft * ModelView
+  */
+#define RP_TRANSFORM_LEFT 0x100
+
+/** \brief Causes the left-transformation matrix of a renderpass to be used.
+  *
+  * The new Model-View-Projection matrix will be 
+  *       
+  *      Projection * ModelView * TransformRight
+  */
+#define RP_TRANSFORM_RIGHT 0x200
+
+
+
 class IRenderPass : public IComponent {
   protected:
     
     ARRAY(GLenum,_drawBuffers);
     GLuint _frameBufferObject;
-    int _setFBO;
   
   public:
     IRenderPass();
@@ -108,6 +132,9 @@ class SceneNodeRenderPass :
   public:
     SceneNodeRenderPass();
     ~SceneNodeRenderPass();
+    
+    Matrixf transformLeft;
+    Matrixf transformRight;
     
     void sortByDistance(const Vector3f &center);
     /** \brief sorts by distance to the camera, taken from context()->MV.

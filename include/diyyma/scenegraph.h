@@ -35,10 +35,12 @@ struct SceneContext {
   Matrixf MVP; ///<\brief The current model-view-projection matrix.
   Matrixf MV;  ///<\brief The current model-view matrix.
   Matrixf V;   ///<\brief The current view matrix.
+  Matrixf P;   ///<\brief The current projection matrix.
   
   double time; ///<\brief The current frame time.
   
   void setIdentity() {
+    P.setIdentity();
     V.setIdentity();
     MV.setIdentity();
     MVP.setIdentity();
@@ -234,6 +236,7 @@ class STSTMSceneNode :
     GLuint _u_MVP;
     GLuint _u_MV;
     GLuint _u_V;
+    GLuint _u_P;
     GLuint _u_time;
   
   public:
