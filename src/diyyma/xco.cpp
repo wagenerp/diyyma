@@ -147,7 +147,7 @@ const char *xco_getErrorString() {
   * \exception XCO_ERR_INSUFFICIENT_DATA The buffer contains insufficient data for an XCO
   * \exception XCO_ERR_OUT_OF_MEMORY The system is out of memory
   */
-int xcor_create(XCOReaderContext **ctx, const void *data, int cb) {
+int xcor_create(XCOReaderContext **ctx, const void *data, size_t cb) {
   
   if (cb<sizeof(XCOChunkHead)) XCOERR(XCO_ERR_INSUFFICIENT_DATA,0);
   
@@ -165,7 +165,7 @@ int xcor_create(XCOReaderContext **ctx, const void *data, int cb) {
   (*ctx)->sHeads=XCO_DEFAULT_SHEADS;
   (*ctx)->sSubChunks=XCO_DEFAULT_SSUBCHUNKS;
   (*ctx)->heads=(XCOChunkHead**)malloc((*ctx)->sHeads*sizeof(XCOChunkHead*));
-  (*ctx)->subChunks=(int*)malloc((*ctx)->sSubChunks*sizeof(int));
+  (*ctx)->subChunks=(uint*)malloc((*ctx)->sSubChunks*sizeof(uint));
   (*ctx)->nHeads=1;
   (*ctx)->nSubChunks=0;
   (*ctx)->heads[0]=(*ctx)->head;
@@ -195,16 +195,16 @@ int xcor_close(XCOReaderContext **ctx) {
   * \returns Data position or -1 on error.
   * \exception XCO_ERR_INVALID_CONTEXT ctx is not a valid context.
   */
-int xcor_data_pos(XCOReaderContext *ctx) {
+size_t xcor_data_pos(XCOReaderContext *ctx) {
   if (!ctx->data) XCOERR(XCO_ERR_INVALID_CONTEXT,-1);
-  return (int)ctx->p-(int)ctx->data-ctx->head->offsData;
+  return (size_t)ctx->p-(size_t)ctx->data-ctx->head->offsData;
 }
 /** \brief Returns the size of the current chunk's data segment
   *
   * \returns Data position or -1 on error.
   * \exception XCO_ERR_INVALID_CONTEXT ctx is not a valid context.
   */
-int xcor_data_size(XCOReaderContext *ctx) {
+size_t xcor_data_size(XCOReaderContext *ctx) {
   if (!ctx->head) XCOERR(XCO_ERR_INVALID_CONTEXT,-1);
   return ctx->head->offsChunks-ctx->head->offsData;
 }
@@ -214,9 +214,9 @@ int xcor_data_size(XCOReaderContext *ctx) {
   * \returns Data position or -1 on error.
   * \exception XCO_ERR_INVALID_CONTEXT ctx is not a valid context.
   */
-int xcor_data_remain(XCOReaderContext *ctx) {
+size_t xcor_data_remain(XCOReaderContext *ctx) {
   if (!ctx->head) XCOERR(XCO_ERR_INVALID_CONTEXT,-1);
-  return ctx->head->offsChunks-(int)ctx->p+(int)ctx->data;
+  return ctx->head->offsChunks-(size_t)ctx->p+(size_t)ctx->data;
 }
 
 
@@ -233,7 +233,7 @@ int xcor_data_remain(XCOReaderContext *ctx) {
   * \exception XCO_ERR_INSUFFICIENT_DATA The targeted position is not within
   * the current chunk's data segment.
   */
-int xcor_data_seek(XCOReaderContext *ctx, int offs, int r) {
+size_t xcor_data_seek(XCOReaderContext *ctx, int offs, int r) {
   if (!ctx->data) XCOERR(XCO_ERR_INVALID_CONTEXT,-1);
   const char *p;
   switch(r) {
@@ -242,12 +242,14 @@ int xcor_data_seek(XCOReaderContext *ctx, int offs, int r) {
     case 1: p=ctx->p+offs; break;
     case 2: p=ctx->data+ctx->head->offsChunks+offs; break;
   }
-  if (((int)p<(int)ctx->data+ctx->head->offsData)||((int)p>(int)ctx->data+ctx->head->offsChunks)) XCOERR(XCO_ERR_INSUFFICIENT_DATA,-1);
+  if (((size_t)p<(size_t)ctx->data+ctx->head->offsData)
+  ||((size_t)p>(size_t)ctx->data+ctx->head->offsChunks)) 
+    XCOERR(XCO_ERR_INSUFFICIENT_DATA,-1);
   ctx->p=p;
-  return (int)p-(int)ctx->data-ctx->head->offsData;
+  return (size_t)p-(size_t)ctx->data-ctx->head->offsData;
 }
 
-int xcor_data_readarr(XCOReaderContext *ctx, void **arr, int cb) {
+int xcor_data_readarr(XCOReaderContext *ctx, void **arr, size_t cb) {
   if (!ctx->data) XCOERR(XCO_ERR_INVALID_CONTEXT,0);
   if (xcor_data_remain(ctx)<cb) return 0;
   *arr=realloc(*arr,cb);
@@ -271,7 +273,7 @@ int xcor_data_readarr(XCOReaderContext *ctx, void **arr, int cb) {
   */
 int xcor_data_readarr_b(XCOReaderContext *ctx, void **arr, size_t *pcb) {
   if (!ctx->data) XCOERR(XCO_ERR_INVALID_CONTEXT,0);
-  int rem=xcor_data_remain(ctx);
+  size_t rem=xcor_data_remain(ctx);
   size_t cb;
   
   if (rem<1) return 0;
@@ -301,7 +303,7 @@ int xcor_data_readarr_b(XCOReaderContext *ctx, void **arr, size_t *pcb) {
   */
 int xcor_data_readarr_s(XCOReaderContext *ctx, void **arr, size_t *pcb) {
   if (!ctx->data) XCOERR(XCO_ERR_INVALID_CONTEXT,0);
-  int rem=xcor_data_remain(ctx);
+  size_t rem=xcor_data_remain(ctx);
   size_t cb;
   if (rem<2) return 0;
   cb=*(u_int16_t*)ctx->p;
@@ -331,7 +333,7 @@ int xcor_data_readarr_s(XCOReaderContext *ctx, void **arr, size_t *pcb) {
   */
 int xcor_data_readarr_i(XCOReaderContext *ctx, void **arr, size_t *pcb) {
   if (!ctx->data) XCOERR(XCO_ERR_INVALID_CONTEXT,0);
-  int rem=xcor_data_remain(ctx);
+  size_t rem=xcor_data_remain(ctx);
   size_t cb;
   
   if (rem<4) return 0;
@@ -350,7 +352,7 @@ int xcor_data_readarr_i(XCOReaderContext *ctx, void **arr, size_t *pcb) {
 int _xcor_subchunk_push(XCOReaderContext *ctx, int idx) {
   if (ctx->sSubChunks<=ctx->nSubChunks) {
     ctx->sSubChunks=ctx->nSubChunks+1;
-    ctx->subChunks=(int*)realloc((void*)ctx->heads,ctx->sSubChunks*sizeof(int));
+    ctx->subChunks=(uint*)realloc((void*)ctx->heads,ctx->sSubChunks*sizeof(uint));
   }
   ctx->subChunks[ctx->nSubChunks++]=idx;
   return 1;

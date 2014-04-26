@@ -62,7 +62,7 @@ class OBJMaterialLibrary : public IAsset {
     char *_filename;
     
     void _clear() {
-      int idx;
+      size_t idx;
       OBJMaterial** pmat;
       FOREACH(idx,pmat,_materials) (*pmat)->drop();
       // ARRAY_DESTROY actually clears the array.
@@ -81,7 +81,7 @@ class OBJMaterialLibrary : public IAsset {
     }
     
     OBJMaterial *find(const char *name) {
-      int idx;
+      size_t idx;
       OBJMaterial** pmat;
       FOREACH(idx,pmat,_materials) if (strcmp((*pmat)->name(),name)==0) {
         return *pmat;
@@ -178,10 +178,10 @@ class OBJLoader {
     float *texCoords;
     int   *triangles;
     
-    size_t nVertices;
-    size_t nNormals;
-    size_t nTexCoords;
-    size_t nTriangles;
+    int nVertices;
+    int nNormals;
+    int nTexCoords;
+    int nTriangles;
 
     int i;
     float buf[6];
@@ -257,7 +257,6 @@ class OBJLoader {
     }
     
     int lnfacecorner(int idx) {
-      int i;
       idx*=3;
       if (!lnint(&bufi[idx])) return 0;
       if ((bufi[idx]<1) ||(bufi[idx]>nVertices)) return 0;
@@ -426,9 +425,8 @@ int StaticMesh::loadDOFFile(const char *fn_in) {
   
   XCOReaderContext *xco=0;
   DOFArray array_head;
-  void *array_data;
   size_t array_cb_record;
-  size_t array_length;
+  int array_length;
   
   int idx_array=0;
   

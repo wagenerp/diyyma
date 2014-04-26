@@ -96,6 +96,10 @@
   n##_v=0; \
   n##_n=0;
 
+#define ARRAY_INIT2(n) \
+  n##_v(0), \
+  n##_n(0)
+
 #define ARRAY_DESTROY(n) \
   if (n##_v) { \
     free((void*)n##_v); \

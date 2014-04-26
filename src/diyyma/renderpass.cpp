@@ -49,7 +49,7 @@ SceneNodeRenderPass::SceneNodeRenderPass() {
 }
 
 SceneNodeRenderPass::~SceneNodeRenderPass() {
-  int idx;
+  size_t idx;
   IRenderableSceneNode **pnode;
   FOREACH(idx,pnode,_nodes) {
     (*pnode)->drop();
@@ -65,7 +65,7 @@ void SceneNodeRenderPass::operator+=(IRenderableSceneNode *node) {
 }
 
 void SceneNodeRenderPass::sortByDistance(const Vector3f &origin) {
-  int idx;
+  size_t idx;
   IRenderableSceneNode **pnode;
   int sorted=1;
   Matrixf transform;
@@ -98,7 +98,7 @@ void SceneNodeRenderPass::sortByDistance() {
 
 
 void SceneNodeRenderPass::render() {
-  int idx;
+  size_t idx;
   IRenderableSceneNode **pnode;
   SceneContext ctx;
   Matrixf m;

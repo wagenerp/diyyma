@@ -116,7 +116,7 @@ LightController::LightController() {
 }
 
 LightController::~LightController() {
-  int idx;
+  size_t idx;
   LightSceneNode **pnode;
   FOREACH(idx,pnode,_nodes) {
     (*pnode)->drop();
@@ -133,7 +133,8 @@ void LightController::operator+=(LightSceneNode *node) {
 
 void LightController::activate(Shader *shd) {
   GLuint loc;
-  int i;
+  size_t idx;
+  LightSceneNode **pnode;
   Matrixf V, MV;
   Vector3f p;
   
@@ -148,16 +149,15 @@ void LightController::activate(Shader *shd) {
   else
     V.setIdentity();
   
-  
-  for(i=0;i<_nodes_n;i++) {
-    MV=_nodes_v[i]->absTransform()*V;
+  FOREACH(idx,pnode,_nodes) {
+    MV=(*pnode)->absTransform()*V;
     p.set(MV.a14,MV.a24,MV.a34);
-    glUniform3fv(shd->locate(light_uniforms[i][0]),1,&_nodes_v[i]->param.ambient_c.x);
-    glUniform3fv(shd->locate(light_uniforms[i][1]),1,&_nodes_v[i]->param.diffuse_c.x);
-    glUniform3fv(shd->locate(light_uniforms[i][2]),1,&_nodes_v[i]->param.specular_c.x);
-    glUniform3fv(shd->locate(light_uniforms[i][3]),1,&p.x);
-    glUniform1f (shd->locate(light_uniforms[i][4]),_nodes_v[i]->param.falloff_factor);
-    glUniform1ui(shd->locate(light_uniforms[i][5]),_nodes_v[i]->param.flags);
+    glUniform3fv(shd->locate(light_uniforms[idx][0]),1,&(*pnode)->param.ambient_c.x);
+    glUniform3fv(shd->locate(light_uniforms[idx][1]),1,&(*pnode)->param.diffuse_c.x);
+    glUniform3fv(shd->locate(light_uniforms[idx][2]),1,&(*pnode)->param.specular_c.x);
+    glUniform3fv(shd->locate(light_uniforms[idx][3]),1,&p.x);
+    glUniform1f (shd->locate(light_uniforms[idx][4]),(*pnode)->param.falloff_factor);
+    glUniform1ui(shd->locate(light_uniforms[idx][5]),(*pnode)->param.flags);
   }
   
 }
@@ -176,7 +176,7 @@ ISceneNode::ISceneNode(ISceneNode *parent) {
 }
 
 ISceneNode::~ISceneNode() {
-  int idx;
+  size_t idx;
   ISceneNode **pchild;
   FOREACH(idx,pchild,_children) {
     (*pchild)->drop();

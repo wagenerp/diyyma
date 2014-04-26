@@ -159,15 +159,15 @@ SceneContext FPSCameraComponent::context() {
 }
 
 AssetReloader::AssetReloader() : 
-  delay(1), _tCheck(0), _asset_v(0), _asset_n(0) { 
+  _asset_v(0), _asset_n(0), _tCheck(0), delay(1) { 
   
 }
 AssetReloader::AssetReloader(IAsset *asset) : 
-  delay(1), _tCheck(0), _asset_v(0), _asset_n(0) {
+  _asset_v(0), _asset_n(0), _tCheck(0), delay(1) {
   operator+=(asset);
 }
 AssetReloader::~AssetReloader() {
-  int i;
+  size_t i;
   for(i=0;i<_asset_n;i++)
     _asset_v[i].asset->drop();
   free((void*)_asset_v);
@@ -176,7 +176,7 @@ AssetReloader::~AssetReloader() {
 void AssetReloader::render() { }
 int AssetReloader::event(const SDL_Event *ev) { return 0; }
 void AssetReloader::iterate(double dt, double time) {
-  int i;
+  size_t i;
   int reloaded=0;
   timestamp_t tNew;
   if (time>_tCheck) {
@@ -195,7 +195,7 @@ void AssetReloader::iterate(double dt, double time) {
 }
 
 int AssetReloader::operator[](const IAsset *asset) const {
-  int i;
+  size_t i;
   for(i=0;i<_asset_n;i++)
     if (_asset_v[i].asset==asset) return i;
   return -1;

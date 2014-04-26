@@ -34,8 +34,8 @@ typedef struct XCOReaderContext {
   
   XCOChunkHead *head;
   XCOChunkHead **heads;
-  int *idxSubChunk;
-  int *subChunks;
+  uint *idxSubChunk;
+  uint *subChunks;
   
   
   int nHeads;
@@ -80,13 +80,13 @@ const char *xco_getErrorString();
 
 
 
-int xcor_create(XCOReaderContext **ctx, const void *data, int cb);
+int xcor_create(XCOReaderContext **ctx, const void *data, size_t cb);
 int xcor_close(XCOReaderContext **ctx);
-int xcor_data_pos(XCOReaderContext *ctx);
-int xcor_data_size(XCOReaderContext *ctx);
-int xcor_data_remain(XCOReaderContext *ctx);
+size_t xcor_data_pos(XCOReaderContext *ctx);
+size_t xcor_data_size(XCOReaderContext *ctx);
+size_t xcor_data_remain(XCOReaderContext *ctx);
 
-int xcor_data_seek(XCOReaderContext *ctx, int offs, int r);
+size_t xcor_data_seek(XCOReaderContext *ctx, int offs, int r);
 
 #define xcor_data_map(ctx) (ctx->head->offsData+ctx->data)
 
@@ -96,7 +96,7 @@ int xcor_data_seek(XCOReaderContext *ctx, int offs, int r);
 #define xcor_data_read(ctx,d) { if (xcor_data_remain(ctx)>=sizeof(d)) { d=*(typeof(d)*)(ctx)->p; (ctx)->p+=sizeof(d); } }
 #endif
 
-int xcor_data_readarr(XCOReaderContext *ctx, void **arr, int cb);
+int xcor_data_readarr(XCOReaderContext *ctx, void **arr, size_t cb);
 int xcor_data_readarr_b(XCOReaderContext *ctx, void **arr, size_t *pcb);
 int xcor_data_readarr_s(XCOReaderContext *ctx, void **arr, size_t *pcb);
 int xcor_data_readarr_i(XCOReaderContext *ctx, void **arr, size_t *pcb);

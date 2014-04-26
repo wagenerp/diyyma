@@ -63,7 +63,7 @@ char *strdup(const char *str) {
 int file_exists(const char *fn) {
   int attr=GetFileAttributesA(fn);
   
-  return (attr!=0xffffffff);
+  return (attr!=-1);
 }
 
 timestamp_t file_timestamp(const char *fn) {
@@ -137,7 +137,8 @@ char *vfs_locate(const char *fn, int mask) {
   memcpy(buf+512-cc_fn-2,fn,cc_fn+1);
   
   
-  int i,j;
+  int i;
+  size_t j;
   
   for(i=0;i<REPOSITORY_COUNT;i++) if (mask&(1<<i))
     for (j=0;j<_repositories[i].path_n;j++) {

@@ -88,7 +88,7 @@ void handleShaderIncludes(
   
   char *p,*e, *fn_start, *q, *fn;
   size_t cc_fn;
-  int i;
+  size_t i;
   
   if (!cc) cc=strlen(subject);
   if (!cc) return;
@@ -169,7 +169,6 @@ void handleShaderIncludes(
       finalize_stmt:
       free((void*)fn);
       
-      erase_stmt:
       // erase #include statement so there will be no error
       memset(q,' ',(size_t)p-(size_t)q);
       
@@ -209,13 +208,12 @@ void handleShaderIncludes(
 
 int Shader::attach(const char *code, size_t cc, int mode) {
   int idx;
-  GLint  ccCode;
   GLuint shd;
   GLint  r = 0;
   GLint  ccLog;
   char   *log;
   
-  int i;
+  size_t i;
   void **code_v;
   size_t *code_cb_v;
   char **files_v;
@@ -238,9 +236,6 @@ int Shader::attach(const char *code, size_t cc, int mode) {
   }
   
   shd=glCreateShader(mode);
-  
-  if (cc) ccCode=cc;
-  else    ccCode=strlen(code);
   
   handleShaderIncludes(
     code,cc,
@@ -326,7 +321,6 @@ int Shader::attachFile(const char *fn_in, int mode) {
 }
 
 int Shader::link() {
-  GLint  r=0;
   GLint  ccLog=0;
   char   *log;
   
