@@ -24,6 +24,7 @@
 #include "GL/glew.h"
 #include "diyyma/util.h"
 #include "diyyma/shader.h"
+#include "diyyma/math.h"
 
 struct DTFHead {
   u_int32_t channels;  ///<\brief Number of color channels in the stream.
@@ -61,11 +62,99 @@ GLuint loadTextureFile(const char *fn_in, GLuint tex_in=0);
 
 #define TEXTURE_SLOTS 8
 
+/** \brief Texture loading flag causing a cubemap to be loaded.
+  *
+  * The file name must then be a valid snprintf pattern containing exactly
+  * one string input. This input will receive 'xp', 'xn', 'yp', ... for
+  * the positive x, negative x, ... faces of the cube map.
+  */
+#define TEXTURE_LOAD_CUBEMAP 0x01
+
+/** \brief Texture loading flag causing an HDR texture to be generated.
+  *
+  * This is only useful when the loaded file supplies extended color information
+  * such as .hdr does.
+  */
+#define TEXTURE_LOAD_HDR 0x02
+
+struct CubemapData {
+  Matrixf V;
+  GLenum textureTarget;
+  const char *name;
+};
+
+// todo: These matrices were created by hand. Check them.
+const CubemapData CUBEMAP_DATA[6] = {
+  {
+    {
+      1,0,0,0,
+      0,0,1,0,
+      0,-1,0,0,
+      0,0,0,1 
+    },
+    GL_TEXTURE_CUBE_MAP_POSITIVE_X,
+    "xp"
+  },
+  {
+    {
+      -1,0,0,0,
+      0,0,-1,0,
+      0,-1,0,0,
+      0,0,0,1
+    },
+    GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+    "xn"
+  },
+  {
+    {
+      0,1,0,0,
+      -1,0,0,0,
+      0,0,1,0,
+      0,0,0,1
+    },
+    GL_TEXTURE_CUBE_MAP_POSITIVE_Y,
+    "yp"
+  },
+  {
+    {
+      0,-1,0,0,
+      -1,0,0,0,
+      0,0,-1,0,
+      0,0,0,1
+    },
+    GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+    "yn"
+  },
+  {
+    {
+      0,0,1,0,
+      -1,0,0,0,
+      0,-1,0,0,
+      0,0,0,1
+    },
+    GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
+    "zp"
+  },
+  {
+    {
+      0,0,-1,0,
+      1,0,0,0,
+      0,-1,0,0,
+      0,0,0,1
+    },
+    GL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
+    "zn"
+  }
+};
+
 class Texture : public IAsset {
   private:
     char *_filename;
+    char *_filename_cube[6];
     GLuint _name;
     int _slot;
+    GLenum _target;
+    int _loadHDR;
     static GLuint __boundTextures[TEXTURE_SLOTS];
   public:
     Texture();
@@ -73,9 +162,22 @@ class Texture : public IAsset {
     ~Texture();
     
     GLuint name();
+    GLenum target();
     
     virtual void reload();
     virtual timestamp_t filesTimestamp();
+    
+    /** \brief Initiates the texture buffers for receiving a cubemap
+      * texture. 
+      *
+      * This is only required if the cubemap is computed and stored in this
+      * texture.
+      * 
+      * \param resolution The width and height of the texture.
+      * \param hdr Set to non-zero to allow hdr image data.
+      *
+      */
+    void initCubemap(unsigned int resolution, int hdr);
     
     void bind(int slot);
     void unbind();
@@ -85,7 +187,7 @@ class Texture : public IAsset {
     
     /** \brief Behaves exactly as the constructor.
       */
-    virtual int load(const char *fn);
+    virtual int load(const char *fn, int flags);
 };
 
 

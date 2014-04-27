@@ -79,7 +79,7 @@ class StaticMesh : public IAsset {
     
     /** \brief Deduces the file type by extension (lowercase .ecn or .dof)
       */
-    virtual int load(const char *fn);
+    virtual int load(const char *fn, int flags);
 };
 
 

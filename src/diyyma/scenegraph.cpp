@@ -297,12 +297,7 @@ void STSTMSceneNode::render(SceneContext ctx) {
     for(i=0;i<MAX_STSTM_TEXTURES;i++)
       if (_texture_locs[i]) 
         glUniform1i(_texture_locs[i],i);
-    if (_u_P   ) glUniformMatrix4fv(_u_P  ,1,0,&ctx.V.a11);
-    if (_u_V   ) glUniformMatrix4fv(_u_V  ,1,0,&ctx.V.a11);
-    if (_u_MV  ) glUniformMatrix4fv(_u_MV ,1,0,&ctx.MV.a11);
-    if (_u_MVP ) glUniformMatrix4fv(_u_MVP,1,0,&ctx.MVP.a11);
-    if (_u_time) glUniform1f(_u_time,ctx.time);
-    if (_lightController) _lightController->activate(_shader);
+    applyUniforms(ctx);
   }
   
   for(i=0;i<MAX_STSTM_TEXTURES;i++)
@@ -325,4 +320,14 @@ void STSTMSceneNode::render(SceneContext ctx) {
 
 Matrixf STSTMSceneNode::transform() {
   return staticTransform;
+}
+
+void STSTMSceneNode::applyUniforms(SceneContext ctx) {
+  if (_u_P   ) glUniformMatrix4fv(_u_P  ,1,0,&ctx.V.a11);
+  if (_u_V   ) glUniformMatrix4fv(_u_V  ,1,0,&ctx.V.a11);
+  if (_u_MV  ) glUniformMatrix4fv(_u_MV ,1,0,&ctx.MV.a11);
+  if (_u_MVP ) glUniformMatrix4fv(_u_MVP,1,0,&ctx.MVP.a11);
+  if (_u_time) glUniform1f(_u_time,ctx.time);
+  if (_lightController) _lightController->activate(_shader);
+  
 }

@@ -1,7 +1,7 @@
 
-/** \file component.cpp
+/** \file framedumper.cpp
   * \author Peter Wagener
-  * \brief Several component implementations
+  * \brief Rudimentary frame dumper extension
   *
   */
 
@@ -60,6 +60,8 @@ void FrameDumperComponent::iterate(double dt, double time) {
   _snprintf(fn,512,_fn_pattern,_frame_index);
   
   ilSaveImage(fn);
+  
+  ilDeleteImages(1,&img);
   
   _frame_index++;
   _t_capture+=interval;

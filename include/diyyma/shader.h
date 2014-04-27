@@ -119,7 +119,7 @@ class Shader : public IAsset {
     
     /** \brief behaves exactly like creating a new shader, specifying 
       * fn as sole argument. */
-    virtual int load(const char *fn);
+    virtual int load(const char *fn, int flags);
 };
 
 

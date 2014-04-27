@@ -180,11 +180,11 @@ void ScreenQuadRenderPass::updateUniforms() {
 
 void ScreenQuadRenderPass::render() {
   int i;
+  SceneContext ctx;
   
-  float time;
   
-  if (_contextSource)
-    time=_contextSource->context().time;
+  if (_contextSource) ctx=_contextSource->context();
+  else ctx.setIdentity();
   
   beginPass();
   if (_shader) {
@@ -192,7 +192,7 @@ void ScreenQuadRenderPass::render() {
     for(i=0;i<MAX_STSTM_TEXTURES;i++)
       if (_texture_locs[i]) 
         glUniform1i(_texture_locs[i],i);
-    if (_u_time) glUniform1f(_u_time,time);
+    applyUniforms(ctx);
   }
   
   for(i=0;i<MAX_STSTM_TEXTURES;i++)
@@ -220,3 +220,34 @@ int ScreenQuadRenderPass::event(const SDL_Event *ev) {
 void ScreenQuadRenderPass::iterate(double dt, double time) {
 
 }
+
+void ScreenQuadRenderPass::applyUniforms(SceneContext ctx) {
+  if (_u_time) glUniform1f(_u_time,ctx.time);
+}
+
+SkyBoxRenderPass::SkyBoxRenderPass() : _u_VPInv(0) {
+
+}
+
+SkyBoxRenderPass::~SkyBoxRenderPass() {
+
+}
+
+void SkyBoxRenderPass::updateUniforms() {
+  ScreenQuadRenderPass::updateUniforms();
+  _u_VPInv=_shader->locate("u_VPInv");
+}
+
+
+void SkyBoxRenderPass::applyUniforms(SceneContext ctx) {
+  Matrixf VPInv;
+  ScreenQuadRenderPass::applyUniforms(ctx);
+  if (_u_VPInv) {
+    VPInv=ctx.V;
+    VPInv.a14=VPInv.a24=VPInv.a34=0;
+    VPInv=ctx.P*VPInv;
+    VPInv.invert();
+    glUniformMatrix4fv(_u_VPInv,1,0,&VPInv.a11);
+  }
+}
+

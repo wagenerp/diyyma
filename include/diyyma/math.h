@@ -41,6 +41,9 @@ typedef Vector2<int> Vector2i;
 #define DEGTORAD(deg) ((deg)*(PI/180.0))
 #define RADTODEG(rad) ((rad)*(180.0/PI))
 
+float modf(float a, float b);
+double modf(double a, double b);
+
 template <class T> struct Matrix {
   public:
     #if MATRIX_COLUMN_FIRST
@@ -480,7 +483,7 @@ template<class T> struct Vector4 {
     
     Vector4(const Vector2<T> &v, T c, T d) :
       x(v.x), y(v.y), z(c), w(d) { }
-
+    
     Vector4(const Vector3<T> &v, T d) :
       x(v.x), y(v.y), z(v.z), w(d) { }
     
@@ -567,7 +570,7 @@ template<class T> struct Vector3 {
       */
     Vector3(const Vector4<T> &v) : 
       x(v.x), y(v.y), z(v.z) { } 
-
+    
     Vector3(const Vector2<T> &v, T z) : 
       x(v.x), y(v.y), z(z) { }
     
@@ -660,7 +663,7 @@ template<class T> struct Vector3 {
       if (f==0) f=1; else f=1.0/f;
       return Vector3(x*f,y*f,z*f);
     }
-
+    
     void normalize() {
       T f=length();
       if (f==0) f=1; else f=1.0/f;
@@ -670,7 +673,64 @@ template<class T> struct Vector3 {
     void print() const {
       printf("%g %g %g\n",x,y,z);
     }
-
+    
+    
+    Vector3<T> rgbToHsv() const {
+      T a,b;
+      if (x>y) {
+        if      (y>z) { a=x-z; b=y-z; return Vector3<T>(60.0*(  b/a),1-z/x,x); }
+        else if (z>x) { a=z-y; b=x-y; return Vector3<T>(60.0*(4+b/a),1-y/z,z); }
+        else          { a=x-y; b=z-y; return Vector3<T>(60.0*(6-b/a),1-y/x,x); }
+      } else { 
+        if      (x>z) { a=y-z; b=x-z; return Vector3<T>(60.0*(2-b/a),1-z/y,z); }
+        else if (y>z) { a=z-x; b=y-x; return Vector3<T>(60.0*(4-b/a),1-x/z,y); }
+        else if ((x==y) && (y==z))    return Vector3<T>(0,0,0);
+        else          { a=y-x; b=z-x; return Vector3<T>(60.0*(2+b/a),1-x/y,y); }
+      }
+    }
+    
+    Vector3<T> hsvToRgb() const {
+      T c=z*y;
+      T m=z-c;
+      T h1=modf(x,360);
+      T a=c*(1-fabs(modf((h1/60),2)-1));
+      c+=m; a+=m;
+      
+      if      (h1< 60) return Vector3<T>(c,a,m);
+      else if (h1<120) return Vector3<T>(a,c,m);
+      else if (h1<180) return Vector3<T>(m,c,a);
+      else if (h1<240) return Vector3<T>(m,a,c);
+      else if (h1<300) return Vector3<T>(a,m,c);
+      else             return Vector3<T>(c,m,a);
+    }
+    
+    static Vector3<T> RGBFromHSV(T h, T s, T v) {
+      T c=v*s, m=v-c;
+      T h1=modf(h,360);
+      T x=c*(1.0-fabs(modf((h1/60.0),2.0)-1.0));
+      c+=m; x+=m;
+      
+      if      (h1< 60) return Vector3<T>(c,x,m);
+      else if (h1<120) return Vector3<T>(x,c,m);
+      else if (h1<180) return Vector3<T>(m,c,x);
+      else if (h1<240) return Vector3<T>(m,x,c);
+      else if (h1<300) return Vector3<T>(x,m,c);
+      else             return Vector3<T>(c,m,x);
+    }
+    
+    static Vector3<T> HSVFromRGB(T r, T g, T b) {
+      T c,x;
+      if (r>g) {
+        if      (g>b) { c=r-b; x=g-b; return Vector3<T>(60.0*(  x/c),1-b/r,r); }
+        else if (b>r) { c=b-g; x=r-g; return Vector3<T>(60.0*(4+x/c),1-g/b,b); }
+        else          { c=r-g; x=b-g; return Vector3<T>(60.0*(6-x/c),1-g/r,r); }
+      } else { 
+        if      (r>b) { c=g-b; x=r-b; return Vector3<T>(60.0*(2-x/c),1-b/g,g); }
+        else if (b>g) { c=b-r; x=g-r; return Vector3<T>(60.0*(4-x/c),1-r/b,b); }
+        else if ((r==g) && (g==b))    return Vector3<T>(0,0,0);
+        else          { c=g-r; x=b-r; return Vector3<T>(60.0*(2+x/c),1-r/g,g); }
+      }
+    }
 };
 
 static Vector3f operator*(float f, const Vector3f &v) { return v*f; }

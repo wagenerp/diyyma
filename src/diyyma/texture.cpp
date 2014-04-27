@@ -18,10 +18,13 @@
 #include "diyyma/texture.h"
 
 #if DIYYMA_TEXTURE_IL
-GLuint loadTextureFile(const char *fn_in, GLuint tex_in) {
+GLuint loadTextureFile(const char *fn_in, GLuint tex_in, 
+  GLenum target_texture, GLenum target_image,
+  int HDR) {
   ILuint img=0;
   GLuint tex=tex_in;
   char *fn=0;
+  
   
   if (!(fn=vfs_locate(fn_in,REPOSITORY_MASK_TEXTURE))) {
     LOG_WARNING(
@@ -42,20 +45,17 @@ GLuint loadTextureFile(const char *fn_in, GLuint tex_in) {
     goto finalize;
   }
   
-  ilConvertImage(IL_RGBA,IL_UNSIGNED_BYTE);
+  ilConvertImage(HDR?IL_RGB:IL_RGBA,HDR?IL_FLOAT:IL_UNSIGNED_BYTE);
   
   if (!tex) glGenTextures(1,&tex);
-  glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D,tex);
-  
+  glBindTexture(target_texture,tex);
   glTexImage2D(
-    GL_TEXTURE_2D,0,GL_RGBA,
+    target_image,0,HDR?GL_R11F_G11F_B10F:GL_RGBA,
     ilGetInteger(IL_IMAGE_WIDTH),ilGetInteger(IL_IMAGE_HEIGHT),
-    0,GL_RGBA,GL_UNSIGNED_BYTE,
+    0,HDR?GL_RGB:GL_RGBA,HDR?GL_FLOAT:GL_UNSIGNED_BYTE,
     ilGetData());
-  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-  
+  glTexParameteri(target_texture,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+  glTexParameteri(target_texture,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
   finalize:
   
   if (fn) free((void*)fn);
@@ -64,19 +64,28 @@ GLuint loadTextureFile(const char *fn_in, GLuint tex_in) {
   return tex;
 }
 #else
-GLuint loadTextureFile(const char *fn, GLuint tex_in=0) {
+GLuint loadTextureFile(const char *fn_in, GLuint tex_in, 
+  GLenum target_texture, GLenum target_image,
+  int HDR) {
   LOG_WARNING("WARNING: No texture loading backend implemented\n");
   return 0;
 }
 #endif
 
-Texture::Texture(): _filename(0), _slot(-1) { 
+Texture::Texture(): 
+  _filename(0), _filename_cube{0,0,0,0,0,0},
+   _slot(-1), _target(GL_TEXTURE_2D),
+  _loadHDR(0) {
   glGenTextures(1,&_name);
 }
 
-Texture::Texture(const char *fn_in): _filename(0), _slot(-1) {
+Texture::Texture(const char *fn_in): 
+  _filename(0), _filename_cube{0,0,0,0,0,0},
+   _slot(-1), _target(GL_TEXTURE_2D),
+  _loadHDR(0) {
+  
   glGenTextures(1,&_name);
-  load(fn_in);
+  load(fn_in,0);
 }
 
 Texture::~Texture() {
@@ -88,15 +97,84 @@ Texture::~Texture() {
 GLuint Texture::name() {
   return _name;
 }
+GLenum Texture::target() {
+  return _target;
+}
 
 void Texture::reload() {
-  if (!_filename) return;
-  loadTextureFile(_filename,_name);
+  int i;
+  switch(_target) {
+    case GL_TEXTURE_CUBE_MAP:
+      for(i=0;i<6;i++) if (_filename_cube[i]) {
+        loadTextureFile(
+          _filename_cube[i],_name,
+          GL_TEXTURE_CUBE_MAP,CUBEMAP_DATA[i].textureTarget,
+          _loadHDR);
+      }
+      break;
+    case GL_TEXTURE_2D:
+      if (_filename)
+        loadTextureFile(_filename,_name,_target,_target,_loadHDR);
+      break;
+  }
 }
 
 timestamp_t Texture::filesTimestamp() {
-  if (!_filename) return 0;
-  return file_timestamp(_filename);
+  int i;
+  timestamp_t res=0, t;
+  switch(_target) {
+    case GL_TEXTURE_CUBE_MAP:
+      for(i=0;i<6;i++) if (_filename_cube[i]) {
+        t=file_timestamp(_filename_cube[i]);
+        if (t>res) res=t;
+      }
+      break;
+    case GL_TEXTURE_2D:
+      if (_filename)
+        res=file_timestamp(_filename);
+      break;
+  }
+  return res;
+}
+
+void Texture::initCubemap(unsigned int resolution, int hdr) {
+  _target=GL_TEXTURE_CUBE_MAP;
+  glBindTexture(GL_TEXTURE_CUBE_MAP,_name);
+  glTexImage2D(
+    GL_TEXTURE_CUBE_MAP_POSITIVE_X,0,
+    hdr?GL_R11F_G11F_B10F:GL_RGB,
+    resolution,resolution,0,
+    GL_RGB,GL_FLOAT,0);
+  glTexImage2D(
+    GL_TEXTURE_CUBE_MAP_NEGATIVE_X,0,
+    hdr?GL_R11F_G11F_B10F:GL_RGB,
+    resolution,resolution,0,
+    GL_RGB,GL_FLOAT,0);
+  glTexImage2D(
+    GL_TEXTURE_CUBE_MAP_POSITIVE_Y,0,
+    hdr?GL_R11F_G11F_B10F:GL_RGB,
+    resolution,resolution,0,
+    GL_RGB,GL_FLOAT,0);
+  glTexImage2D(
+    GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,0,
+    hdr?GL_R11F_G11F_B10F:GL_RGB,
+    resolution,resolution,0,
+    GL_RGB,GL_FLOAT,0);
+  glTexImage2D(
+    GL_TEXTURE_CUBE_MAP_POSITIVE_Z,0,
+    hdr?GL_R11F_G11F_B10F:GL_RGB,
+    resolution,resolution,0,
+    GL_RGB,GL_FLOAT,0);
+  glTexImage2D(
+    GL_TEXTURE_CUBE_MAP_NEGATIVE_Z,0,
+    hdr?GL_R11F_G11F_B10F:GL_RGB,
+    resolution,resolution,0,
+    GL_RGB,GL_FLOAT,0);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_WRAP_R,GL_CLAMP_TO_EDGE);
 }
 
 void Texture::bind(int slot) {
@@ -104,8 +182,8 @@ void Texture::bind(int slot) {
   if (__boundTextures[slot]==_name) return;
   __boundTextures[slot]=_name;
   glActiveTexture(GL_TEXTURE0+slot);
-  glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D,_name);
+  glEnable(_target);
+  glBindTexture(_target,_name);
   _slot=slot;
 }
 
@@ -114,7 +192,7 @@ void Texture::unbind() {
   if (__boundTextures[_slot]==_name) {
     __boundTextures[_slot]=0;
     glActiveTexture(GL_TEXTURE0+_slot);
-    glBindTexture(GL_TEXTURE_2D,0);
+    glBindTexture(_target,0);
   }
   _slot=-1;
 }
@@ -139,56 +217,44 @@ void Texture::Unbind(int slot) {
   
 }
 
-int Texture::load(const char *fn) {
-  if (_filename) free((void*)_filename);
+int Texture::load(const char *fn, int flags) {
+  char fn_buf[512];
+  char *fn_cube[6];
+  int i;
   
-  _filename=vfs_locate(fn,REPOSITORY_MASK_TEXTURE);
-  if (_filename) {
-    loadTextureFile(_filename,_name);
+  _loadHDR=flags&TEXTURE_LOAD_HDR;
+  
+  if (flags&TEXTURE_LOAD_CUBEMAP) {
+    _target=GL_TEXTURE_CUBE_MAP;
+    printf("loading cubemap texture.. %s\n",fn);
+    for(i=0;i<6;i++) {
+      if (_filename_cube[i]) free((void*)_filename_cube[i]);
+      _snprintf(fn_buf,sizeof(fn_buf),fn,CUBEMAP_DATA[i].name);
+      printf("  %s (%s): ",CUBEMAP_DATA[i].name,fn_buf);
+      if (_filename_cube[i]=vfs_locate(fn_buf,REPOSITORY_MASK_TEXTURE)) {
+        printf("%s\n",_filename_cube[i]);
+        loadTextureFile(
+          _filename_cube[i],_name,
+          GL_TEXTURE_CUBE_MAP,CUBEMAP_DATA[i].textureTarget,
+          _loadHDR);
+      } else {
+        printf(" <not found> %s\n",_filename_cube[i]);
+      }
+    }
+    glBindTexture(GL_TEXTURE_CUBE_MAP,_name);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_WRAP_R,GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_CUBE_MAP,0);
+  } else {
+    if (_filename) free((void*)_filename);
+    _filename=vfs_locate(fn,REPOSITORY_MASK_TEXTURE);
+    if (_filename) {
+      loadTextureFile(_filename,_name,_target,_target,
+      _loadHDR);
+    }
   }
-  
   return 1;
 }
-
-/*
-ITextureReferrer<N>::ITextureReferrer() :
-  _shaderReferrer(0)
-  {
-  memset(_textures,0,sizeof(_textures));
-  memset(_texture_locs,0,sizeof(_texture_locs));
-}
-ITextureReferrer<int N>::~ITextureReferrer() {
-  int i;
-  for(i=0;i<N;i++)
-    if (_textures[i]) _textures[i]->drop();
-}
-
-Texture *ITextureReferrer<int N>::texture(size_t index) {
-  if (index>=N) return 0;
-  return _textures[index];
-}
-size_t ITextureReferrer<int N>::textureCount() {
-  int i;
-  
-  for(i=0;i<N;i++)
-    if (!_textures[i]) break;
-  return i;
-}
-
-void ITextureReferrer<int N>::addTexture(Texture *t, const char *loc) {
-  int i;
-  Shader shd=0;
-  if (_shaderReferrer) shd=_shaderReferrer->shader();
-  for(i=0;i<N;i++)
-    if (!_textures[i]) {
-      t->grab();
-      _textures[i]=t;
-      if (shd)
-        _texture_locs[i]=shd->locate(loc);
-      else 
-        _texture_locs[i]=0;
-    }
-  
-}
-
-*/

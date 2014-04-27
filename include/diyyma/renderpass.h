@@ -171,6 +171,20 @@ class ScreenQuadRenderPass :
     virtual int event(const SDL_Event *ev);
     virtual void iterate(double dt, double time);
     
+    virtual void applyUniforms(SceneContext ctx);
+    
+};
+
+class SkyBoxRenderPass : public ScreenQuadRenderPass {
+  private:
+    GLuint _u_VPInv;
+    
+  public:
+    SkyBoxRenderPass();
+    ~SkyBoxRenderPass();
+    
+    virtual void updateUniforms();
+    virtual void applyUniforms(SceneContext ctx);
 };
 
 

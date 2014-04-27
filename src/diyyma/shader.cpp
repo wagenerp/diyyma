@@ -36,7 +36,7 @@ Shader::Shader(const char *basename): _linked(0) {
     _sourceFiles[i]=0;
   }
   _program=glCreateProgram();
-  load(basename);
+  load(basename,0);
 }
 
 Shader::Shader(const char *vsd, const char *fsd, const char *gsd): _linked(0) {
@@ -387,7 +387,7 @@ timestamp_t Shader::filesTimestamp() {
   return r;
 }
 
-int Shader::load(const char *fn) {
+int Shader::load(const char *fn, int flags) {
   char buf[512];
   
   int i;

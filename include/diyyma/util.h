@@ -83,9 +83,9 @@
     sizeof(decltype(*n##_v))*((n##_n)+1)))[(n##_n)++]=o;
 #else
 #define APPEND(n,o) \
-  (n##_v=(typeof(n##_v))realloc( \
+  (n##_v=(decltype(n##_v))realloc( \
     (void*)(n##_v), \
-    sizeof(typeof(*n##_v))*((n##_n)+1)))[(n##_n)++]=o;
+    sizeof(decltype(*n##_v))*((n##_n)+1)))[(n##_n)++]=o;
 #endif
 
 #define ARRAY(t,n) \
@@ -114,9 +114,9 @@
     sizeof(decltype(*n##_v))*(++(n##_n)));
 #else
 #define ARRAY_SETSIZE(n,o) \
-  n##_v=(typeof(n##_v))realloc( \
+  n##_v=(decltype(n##_v))realloc( \
     (void*)(n##_v), \
-    sizeof(typeof(*n##_v))*(++(n##_n)));
+    sizeof(decltype(*n##_v))*(++(n##_n)));
 #endif
 
 #define FOREACH(i,o,n) \
@@ -142,6 +142,7 @@ void setLogMask(int v);
 /** \brief Text-to-speech interface */
 void speakrf(char *fmt,...);
 
+char *strdup(const char *str);
 
 /** \brief Reads the whole of a specified file into a buffer.
   *
@@ -269,8 +270,12 @@ class IAsset : public RCObject {
       * 
       * Asset managers understand the notion of failure during resource loading
       * and therefore require a return value on load.
+      *
+      * At the same time, some assets may have different modes of loading,
+      * like otherwise indistinguishable file formats. To resolve these issues,
+      * a set of flags can be specified. These depend on the asset being loaded.
       */
-    virtual int load(const char *fn) =0;
+    virtual int load(const char *fn, int flags) =0;
     
 };
 
@@ -386,8 +391,11 @@ template<class T> class AssetRegistry {
       * The individual asset class may perform name translation, such as
       * the Shader type: the base name is appended with an extension per
       * shader type. 
+      *
+      * If additional information is required to load the asset correctly,
+      * it can be specified through the flags parameter.
       */
-    T *get(const char *name) {
+    T *get(const char *name, int flags=0) {
       int idx;
       const char **pstr;
       char *str;
@@ -396,7 +404,7 @@ template<class T> class AssetRegistry {
       }
       
       T *res=new T();
-      if (!res->load(name)) {
+      if (!res->load(name,flags)) {
         delete res;
         return 0;
       }

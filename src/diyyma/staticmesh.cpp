@@ -90,7 +90,7 @@ class OBJMaterialLibrary : public IAsset {
     }
     
     virtual void reload() {
-      if (_filename) load(_filename);
+      if (_filename) load(_filename,0);
     }
     
     virtual timestamp_t filesTimestamp() {
@@ -103,7 +103,7 @@ class OBJMaterialLibrary : public IAsset {
       * Asset managers understand the notion of failure during resource loading
       * and therefore require a return value on load.
       */
-    virtual int load(const char *fn) {
+    virtual int load(const char *fn, int flags) {
       void *data;
       size_t cb;
       
@@ -644,7 +644,7 @@ timestamp_t StaticMesh::filesTimestamp() {
 }
 
 
-int StaticMesh::load(const char *fn) {
+int StaticMesh::load(const char *fn, int flags) {
   
   size_t len=strlen(fn);
   clear();

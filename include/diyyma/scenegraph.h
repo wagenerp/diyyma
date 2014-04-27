@@ -250,6 +250,8 @@ class STSTMSceneNode :
     virtual void render(SceneContext ctx);
     
     virtual Matrixf transform();
+    
+    virtual void applyUniforms(SceneContext ctx);
   
 };
 

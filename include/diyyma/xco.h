@@ -93,7 +93,7 @@ size_t xcor_data_seek(XCOReaderContext *ctx, int offs, int r);
 #ifdef _MSC_VER
 #define xcor_data_read(ctx,d) { if (xcor_data_remain(ctx)>=sizeof(d)) { d=*(decltype(d)*)((ctx)->p); (ctx)->p+=sizeof(d); } }
 #else
-#define xcor_data_read(ctx,d) { if (xcor_data_remain(ctx)>=sizeof(d)) { d=*(typeof(d)*)(ctx)->p; (ctx)->p+=sizeof(d); } }
+#define xcor_data_read(ctx,d) { if (xcor_data_remain(ctx)>=sizeof(d)) { d=*(decltype(d)*)(ctx)->p; (ctx)->p+=sizeof(d); } }
 #endif
 
 int xcor_data_readarr(XCOReaderContext *ctx, void **arr, size_t cb);
@@ -118,7 +118,7 @@ int xcow_chunk_close(XCOWriterContext *ctx);
 int xcow_finalize(XCOWriterContext *ctx);
 int xcow_reset(XCOWriterContext *ctx);
 
-#define xcow_data_write(ctx,d) { if (!(ctx)->chunkMode) { xcow_ensure_byte_count(ctx,sizeof(d)); *(typeof(d)*)(ctx)->p=d; (ctx)->p+=sizeof(d); } }
+#define xcow_data_write(ctx,d) { if (!(ctx)->chunkMode) { xcow_ensure_byte_count(ctx,sizeof(d)); *(decltype(d)*)(ctx)->p=d; (ctx)->p+=sizeof(d); } }
 int xcow_data_writearr(XCOWriterContext *ctx, void *arr, int cb);
 int xcow_data_writearr_b(XCOWriterContext *ctx, void *arr, int cr, int cbr);
 int xcow_data_writearr_s(XCOWriterContext *ctx, void *arr, int cr, int cbr);
