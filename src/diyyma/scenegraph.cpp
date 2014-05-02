@@ -1,4 +1,5 @@
 
+#include "diyyma/config.h"
 #include "diyyma/scenegraph.h"
 #include "diyyma/util.h"
 
@@ -250,9 +251,144 @@ void LissajousSceneNode::iterate(double dt, double t) {
   _transform.a34=p.z;
 }
 
+#ifdef DEBUG_DIYYMA_SPLINES
+CubicBezierSceneNode::CubicBezierSceneNode(ISceneNode *parent) :
+  IRenderableSceneNode(parent)
+  {
+#else
+CubicBezierSceneNode::CubicBezierSceneNode(ISceneNode *parent) :
+  ISceneNode(parent)
+  {
+#endif
+  _transform.setIdentity();
+  ARRAY_INIT(_points);
+  rollFactor=0;
+  up.set(0,0,1);
+  timeOffset=0;
+  timeScale=1;
+}
+CubicBezierSceneNode::~CubicBezierSceneNode() {
+  ARRAY_DESTROY(_points);
+}
+
+void CubicBezierSceneNode::operator+=(const Vector3f &p) {
+  APPEND(_points,p);
+}
+
+void CubicBezierSceneNode::clear() {
+  ARRAY_DESTROY(_points);
+}
 
 
+Matrixf CubicBezierSceneNode::transform() {
+  return _transform;
+}
 
+void CubicBezierSceneNode::iterate(double dt, double t) {
+  int idx;
+  int n;
+  float roll, c,s;
+  Vector3f p;
+  Vector3f f,l0,u0,l,u;
+  Vector3f a;
+  
+  if (_points_n<4) return;
+  t=(t-timeOffset)*timeScale;
+  
+  
+  n=(_points_n-1)/3;
+  if ((t<=0) || (n==0)) {
+    t=0;
+    idx=0;
+  } else if (t>(float)n) {
+    t=1;
+    idx=n-1;
+  } else {
+    idx=(int)t;
+    t-=idx;
+  }
+  
+  idx*=3;
+  
+  p=Vector3f::Bezier(
+    _points_v[idx],_points_v[idx+1],_points_v[idx+2],_points_v[idx+3],t);
+  f=Vector3f::BezierVelocity(
+    _points_v[idx],_points_v[idx+1],_points_v[idx+2],_points_v[idx+3],t).normal();
+  
+  l0=(up%f).normal();
+  u0=f%l0;
+  
+  if (rollFactor!=0) {
+    // todo: Improve computation of the roll angle.
+    a=Vector3f::BezierAcceleration(
+      _points_v[idx],_points_v[idx+1],_points_v[idx+2],_points_v[idx+3],t).normal();
+    a-=u*(u*a);
+    a.normalize();
+    
+    roll=asin(a*l0)*rollFactor;
+    
+    c=cos(roll);
+    s=sin(roll);
+    l=c*l0-s*u0;
+    u=s*l0+c*u0;
+  } else {
+    l=l0;
+    u=u0;
+  }
+  
+  _transform.set(
+    f.x,l.x,u.x,p.x,
+    f.y,l.y,u.y,p.y,
+    f.z,l.z,u.z,p.z,
+    0,0,0,1);
+  
+}
+
+#ifdef DEBUG_DIYYMA_SPLINES
+void CubicBezierSceneNode::render(SceneContext ctx) {
+  int i;
+  float t;
+  int n;
+  Vector3f p;
+  glColor3f(1,0.4,1);
+  
+  n=(_points_n-1)/3;
+  
+  glMatrixMode(GL_PROJECTION); glLoadMatrixf(&ctx.MVP.a11);
+  glMatrixMode(GL_MODELVIEW); glLoadIdentity();
+  glBegin(GL_LINE_STRIP);
+    for(i=0;i<n;i++) {
+      for(t=0;t<1;t+=0.04) {
+        p=Vector3f::Bezier(
+          _points_v[i*3],_points_v[i*3+1],_points_v[i*3+2],_points_v[i*3+3],t);
+        glVertex3fv(&p.x);
+      }
+    }
+  glEnd();
+}
+#endif
+
+
+CameraSceneNode::CameraSceneNode(ISceneNode *parent) :
+  STSceneNode(parent)
+  {
+  P.setPerspective(80,1.0/0.75,0.1,1000);
+  time=0;
+}
+
+CameraSceneNode::~CameraSceneNode() { }
+
+SceneContext CameraSceneNode::context() {
+  SceneContext ctx;
+  ctx.P=P;
+  ctx.V=absTransform().inverse();
+  ctx.MV=ctx.V;
+  ctx.MVP=ctx.P*ctx.V;
+  ctx.time=time;
+  return ctx;
+}
+
+void CameraSceneNode::iterate(double dt, double t) { time=t; }
 
 
 STSTMSceneNode::STSTMSceneNode(ISceneNode *parent) : 
@@ -299,10 +435,8 @@ void STSTMSceneNode::render(SceneContext ctx) {
         glUniform1i(_texture_locs[i],i);
     applyUniforms(ctx);
   }
-  
   for(i=0;i<MAX_STSTM_TEXTURES;i++)
     if (_textures[i]) _textures[i]->bind(i);
-  
   
   _mesh->bind();
   _mesh->send();
@@ -310,7 +444,6 @@ void STSTMSceneNode::render(SceneContext ctx) {
   
   for(i=0;i<MAX_STSTM_TEXTURES;i++)
     if (_textures[i]) _textures[i]->unbind();
-  
   
   
   if (_shader) {

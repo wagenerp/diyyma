@@ -15,8 +15,6 @@
 #include <math.h>
 #include <stdarg.h>
 
-#include "GL/glew.h"
-
 #include "diyyma/util.h"
 
 #define MATRIX_COLUMN_FIRST 1
@@ -24,16 +22,25 @@
 template<class T> struct Vector4;
 template<class T> struct Vector3;
 template<class T> struct Vector2;
-template <class T> struct Matrix;
+template<class T> struct Matrix;
+template<class T> struct Quaternion;
 
 typedef Matrix<float> Matrixf;
 typedef Vector4<float> Vector4f;
 typedef Vector3<float> Vector3f;
 typedef Vector2<float> Vector2f;
+typedef Quaternion<float> Quaternionf;
+
+typedef Matrix<double> Matrixd;
+typedef Vector4<double> Vector4d;
+typedef Vector3<double> Vector3d;
+typedef Vector2<double> Vector2d;
+typedef Quaternion<double> Quaterniond;
 
 typedef Vector4<int> Vector4i;
 typedef Vector3<int> Vector3i;
 typedef Vector2<int> Vector2i;
+
 
 #define PI 3.141592653589793238462643
 #define DEGPERRAD (180.0/PI)
@@ -399,6 +406,10 @@ template <class T> struct Matrix {
         a13*a21*a32*a44 - a11*a23*a32*a44 - a12*a21*a33*a44 + a11*a22*a33*a44;
     }
     
+    T tr() const {
+      return a11+a12+a13+a14;
+    }
+    
     Matrix<T> inverse() const {
       Matrix<T> r; 
       T d = det();
@@ -556,6 +567,7 @@ template<class T> struct Vector4 {
 };
 
 static Vector4f operator*(float f, const Vector4f &v) { return v*f; }
+static Vector4d operator*(double f, const Vector4d &v) { return v*f; }
 
 template<class T> struct Vector3 {
   public:
@@ -731,9 +743,117 @@ template<class T> struct Vector3 {
         else          { c=g-r; x=b-r; return Vector3<T>(60.0*(2+x/c),1-r/g,g); }
       }
     }
+    
+    
+    /** \brief Interpolates on a quadratic bezier curve.
+      * 
+      * The curve goes from p0 to p1, using (but generally not touching)
+      * the control point p2.
+      * 
+      * \param t Interpolation step. Must be within [0,1].
+      */
+    static Vector3<T> Bezier(
+      const Vector3 &p0,
+      const Vector3 &p1,
+      const Vector3 &p2,
+      T t) {
+      T s=1-t;
+      return s*(s*p0+t*p1) + t*(s*p1+t*p2);
+    }
+    
+    /** \brief Interpolates on a cubic bezier curve.
+      * 
+      * The curve goes from p0 to p1, using (but generally not touching)
+      * the control points p2 and p3.
+      * 
+      * \param t Interpolation step. Must be within [0,1].
+      */
+    static Vector3<T> Bezier(
+      const Vector3 &p0,
+      const Vector3 &p1,
+      const Vector3 &p2,
+      const Vector3 &p3,
+      T t) {
+      
+      T s=1-t;
+      
+      return 
+        s*(s*(s*p0+t*p1) + t*(s*p1+t*p2))  +  t*(s*(s*p1+t*p2) + t*(s*p2+t*p3));
+    }
+    
+    
+    /** \brief Interpolates on a quadratic bezier curve, returning the velocity.
+      * 
+      * The curve goes from p0 to p1, using (but generally not touching)
+      * the control point p2.
+      * 
+      * \param t Interpolation step. Must be within [0,1].
+      */
+    static Vector3<T> BezierVelocity(
+      const Vector3 &p0,
+      const Vector3 &p1,
+      const Vector3 &p2,
+      T t) {
+      return (2*(1-t))*(p1-p0)+(2*t)*(p2-p1);
+    }
+    
+    /** \brief Interpolates on a cubic bezier curve, returning the velocity.
+      * 
+      * The curve goes from p0 to p1, using (but generally not touching)
+      * the control points p2 and p3.
+      * 
+      * \param t Interpolation step. Must be within [0,1].
+      */
+    static Vector3<T> BezierVelocity(
+      const Vector3 &p0,
+      const Vector3 &p1,
+      const Vector3 &p2,
+      const Vector3 &p3,
+      T t) {
+      
+      T s=1-t;
+      
+      return (3*s*s)*(p1-p0)+(6*s*t)*(p2-p1)+(3*t*t)*(p3-p2);
+    }
+    
+    /** \brief Interpolates on a quadratic bezier curve, returning the acceleration.
+      * 
+      * The curve goes from p0 to p1, using (but generally not touching)
+      * the control point p2.
+      * 
+      * \param t Interpolation step. Must be within [0,1].
+      */
+    static Vector3<T> BezierAcceleration(
+      const Vector3 &p0,
+      const Vector3 &p1,
+      const Vector3 &p2,
+      T t) {
+      return 2*(p2-p1-p1+p0);
+    }
+    
+    /** \brief Interpolates on a cubic bezier curve, returning the acceleration.
+      * 
+      * The curve goes from p0 to p1, using (but generally not touching)
+      * the control points p2 and p3.
+      * 
+      * \param t Interpolation step. Must be within [0,1].
+      */
+    static Vector3<T> BezierAcceleration(
+      const Vector3 &p0,
+      const Vector3 &p1,
+      const Vector3 &p2,
+      const Vector3 &p3,
+      T t) {
+      
+      T s=1-t;
+      
+      return (6*s)*(p2-p1-p1+p0) + (6*t)*(p3-p2-p2+p1);
+    }
+    
 };
 
 static Vector3f operator*(float f, const Vector3f &v) { return v*f; }
+static Vector3d operator*(double f, const Vector3d &v) { return v*f; }
 
 
 template<class T> struct Vector2 {
@@ -821,6 +941,7 @@ template<class T> struct Vector2 {
 
 };
 static Vector2f operator*(float f, const Vector2f &v) { return v*f; }
+static Vector2d operator*(double f, const Vector2d &v) { return v*f; }
 
 /** \brief Mirror point along plane
   * \param point Point which shall be mirrored
@@ -857,4 +978,229 @@ static Vector4f intersectPlane(const Vector3f &origin, const Vector3f &direction
 	return intersectionPoint;
   }
 }
+
+template<class T> struct Quaternion {
+  public:
+    T r;     ///< \brief Real component.
+    union {
+      struct {
+        T x,y,z; ///< \brief Complex components.
+      };
+      Vector3<T> v;
+    };
+  
+  public:
+    Quaternion(): r(0), x(0), y(0), z(0) { }
+    Quaternion(T re): r(re), x(0), y(0), z(0) { }
+    Quaternion(T re, T ix, T iy, T iz): r(re), x(ix), y(iy), z(iz) { }
+    Quaternion(T re,const Vector3<T> &im) : r(re), x(im.x), y(im.y), z(im.z) { }
+    Quaternion(const Vector4<T> &v) : r(v.w), x(v.x), y(v.y), z(v.z) { }
+    
+    void set(T re, T ix, T iy, T iz) {
+      r=re; x=ix; y=iy; z=iz;
+    }
+    
+    void set(T re) {
+      r=re; x=0; y=0; z=0;
+    }
+    void set(T re, const Vector3<T> &im) {
+      r=re; x=im.x; y=im.y; z=im.z;
+    }
+    void set(const Vector4<T> &v) {
+      r=v.w; x=v.x; y=v.y; z=v.z;
+    }
+    
+    Quaternion<T> &operator=(T re) {
+      r=re; x=0; y=0; z=0;
+      return *this;
+    }
+    
+    static Quaternion<T> RotationX(T ang) {
+      T c=cos(ang*0.5), s=sin(ang*0.5);
+      return Quaternion<T>(c,s,0,0);
+    }
+    static Quaternion<T> RotationY(T ang) {
+      T c=cos(ang*0.5), s=sin(ang*0.5);
+      return Quaternion<T>(c,0,0,s);
+    }
+    static Quaternion<T> RotationZ(T ang) {
+      T c=cos(ang*0.5), s=sin(ang*0.5);
+      return Quaternion<T>(c,0,0,s);
+    }
+    
+    static Quaternion<T> FromVectors(
+      const Vector3<T> &from, const Vector3<T> &to) {
+      
+      Vector3f a=from.normal(),b=to.normal();
+      Vector3f n=b%a;
+      
+      T s=asin(n.length())*0.5;
+      T c=cos(s);
+      s=sin(s);
+      
+      return Quaternion<T>(c,n*s);
+    }
+    
+    static Quaternion<T> FromMatrix(const Matrix<T> &m) {
+      T f=m.a11+m.a22+m.a33;
+      Quaternion<T> r;
+      
+      if (f>0) {
+        f=sqrt(f+1)*2;
+        r.r=0.25*f; f=1.0/f;
+        r.x=(m.a32-m.a23)*f;
+        r.y=(m.a13-m.a31)*f;
+        r.z=(m.a21-m.a12)*f;
+      } else if ((m.a11>m.a22)&&(m.a11>m.a33)) {
+        f=sqrt(1+m.a11-m.a22-m.a33)*2;
+        r.x=0.25*f; f=1.0/f;
+        r.r=(m.a32-m.a23)*f;
+        r.y=(m.a12-m.a21)*f;
+        r.z=(m.a13-m.a31)*f;
+      } else if (m.a22>m.a33) {
+        f=sqrt(1+m.a22-m.a11-m.a33)*2;
+        r.y=0.25*f; f=1.0/f;
+        r.r=(m.a13-m.a31)*f;
+        r.x=(m.a12-m.a21)*f;
+        r.z=(m.a23-m.a32)*f;
+      } else {
+        f=sqrt(1+m.a33-m.a11-m.a22)*2;
+        r.z=0.25*f; f=1.0/f;
+        r.r=(m.a21-m.a12)*f;
+        r.x=(m.a13-m.a31)*f;
+        r.y=(m.a23-m.a32)*f;
+      }
+      
+      return r;
+    }
+    
+    Quaternion<T> operator-() const { return Quaternion<T>(-r,-x,-y,-z); }
+    
+    Quaternion<T> operator+(const Quaternion<T> &q) const {
+      return Quaternion<T>(r+q.r,x+q.x,y+q.y,z+q.z);
+    }
+    
+    Quaternion<T> operator+(T re) const { 
+      return Quaternion<T>(r+re,x,y,z); 
+    }
+    
+    Quaternion<T> operator+(const Vector3<T> &v) const {
+      return Quaternion<T>(r,x+v.x,y+v.y,z+v.z);
+    }
+    
+    Quaternion<T> operator-(const Quaternion<T> &q) const {
+      return Quaternion<T>(r-q.r,x-q.x,y-q.y,z-q.z);
+    }
+    
+    Quaternion<T> operator-(T re) const { 
+      return Quaternion<T>(r-re,x,y,z); 
+    }
+    
+    Quaternion<T> operator-(const Vector3<T> &v) const {
+      return Quaternion<T>(r,x-v.x,y-v.y,z-v.z);
+    }
+    
+    
+    void operator+=(const Quaternion<T> &q) {
+      r+=q.r; x+=q.x; y+=q.y; z+=q.z;
+    }
+    
+    void operator+=(T re) { 
+      r+=re;
+    }
+    
+    void operator+=(const Vector3<T> &v) {
+      x+=v.x; y+=v.y; z+=v.z;
+    }
+    
+    void operator-=(const Quaternion<T> &q) {
+      r-=q.r; x-=q.x; y-=q.y; z-=q.z;
+    }
+    
+    void operator-=(T re) { 
+      r-=re;
+    }
+    
+    void operator-=(const Vector3<T> &v) {
+      x-=v.x; y-=v.y; z-=v.z;
+    }
+    
+    /** \brief Grassman Product. */
+    Quaternion<T> operator%(const Quaternion<T> &q) const {
+      return Quaternion<T>(r*q.r-v*q.v,q.r*v+r*q.v+v%q.v);
+    }
+    
+    /** \brief Dot Product. */
+    T operator*(const Quaternion<T> &q) const {
+      return r*q.r+x*q.x+y*q.y+z*q.z;
+    }
+    
+    Quaternion<T> operator*(const Vector3<T> &q) const {
+      return Quaternion<T>(-v*q,r*q+v%q);
+    }
+    
+    Quaternion<T> operator*(T f) const {
+      return Quaternion<T>(r*f,x*f,y*f,z*f);
+    }
+    
+    Quaternion<T> operator/(T f) const {
+      return Quaternion<T>(r/f,x/f,y/f,z/f);
+    }
+    
+    /** \brief Grassman Product. */
+    void operator%=(const Quaternion<T> &q) {
+      set(r*q.r-v*q.v,q.r*v+r*q.v+v%q.v);
+    }
+    
+    void operator*=(const Vector3<T> &q) {
+      set(-v*q,r*q+v%q);
+    }
+    
+    void operator*=(T f) {
+      r*=f; x*=f; y*=f; z*=f;
+    }
+    void operator/=(T f) {
+      r/=f; x/=f; y/=f; z/=f;
+    }
+    
+    Quaternion<T> conjugated() const {
+      return Quaternion<T>(r,-x,-y,-z);
+    }
+    
+    void conjugate() { 
+      x=-x; y=-y; z=-z;
+    }
+    
+};
+
+template<class T> Quaternion<T> slerp(
+  const Quaternion<T> &q0,
+  const Quaternion<T> &q1_in,
+  T t) {
+  
+  T a = q0*q1_in;
+  Quaternion<T> q1;
+  
+  if (a<0) {
+    a=-a;
+    q1=-q1_in;
+  } else
+    q1=q1_in;
+  
+  
+  a=acos(a);
+  
+  return (q0*sin(a*(1-t)) + q1*sin(a*t))/sin(a);
+}
+
+template<class T> Quaternion<T> lerp(
+  const Quaternion<T> &q0,
+  const Quaternion<T> &q1,
+  T t) {
+  
+  T a = q0*q1;
+  if (a<0) return q0*(1-t)-q1*t;
+  else     return q0*(1-t)+q1*t;
+}
+
 #endif

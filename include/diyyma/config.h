@@ -15,4 +15,6 @@
   */
 #define DIYYMA_TEXTURE_IL 1
 
+#define DEBUG_DIYYMA_SPLINES
+
 #endif

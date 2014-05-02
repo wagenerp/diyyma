@@ -181,6 +181,7 @@ void Texture::bind(int slot) {
   if ((slot<0)||(slot>=TEXTURE_SLOTS)) return;
   if (__boundTextures[slot]==_name) return;
   __boundTextures[slot]=_name;
+  glEnable(GL_TEXTURE0+slot);
   glActiveTexture(GL_TEXTURE0+slot);
   glEnable(_target);
   glBindTexture(_target,_name);

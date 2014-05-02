@@ -234,6 +234,7 @@ template<int N> class ITextureReferrer {
             _texture_locs[i]=shd->locate(loc);
           else 
             _texture_locs[i]=0;
+          break;
         }
       
     }

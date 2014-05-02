@@ -216,6 +216,106 @@ class LissajousSceneNode : public ISceneNode, public IIterator {
   
 };
 
+/** \brief Bezier path animation. Transforms children to follow a sequence of
+  * cubic bezier curves.
+  *
+  * The curve is defined by an array of control points consisting of the
+  * starting point, followed by any number of triplets.
+  * 
+  * The first bezier segment starts with the starting point, uses the first
+  * two points of the first triplet as control points and the final point
+  * as the target.
+  * Each triplet's target point will then serve as the starting point for
+  * the following bezier segment.
+  *
+  * 
+  */
+#ifdef DEBUG_DIYYMA_SPLINES
+class CubicBezierSceneNode : 
+  public IIterator,
+  public IRenderableSceneNode {
+#else
+class CubicBezierSceneNode : 
+  public IIterator,
+  public ISceneNode {
+#endif
+  private:
+    Matrixf _transform;
+    
+    ARRAY(Vector3f,_points);
+    
+  public:
+    CubicBezierSceneNode(ISceneNode *parent);
+    virtual ~CubicBezierSceneNode();
+    
+    
+    /** \brief Appends a single point to our list of control points.*/
+    void operator+=(const Vector3f &p);
+    
+    void clear();
+    
+    /** \brief Causes the transformation to "roll" on turns, like jets do.
+      *
+      * Defaults to 0.
+      */
+    float rollFactor;
+    
+    /** \brief The up direction, used for computing the roll value of
+      * the spline's rotation.
+      *
+      * Defaults to the positive z axis.
+      */
+    Vector3f up;
+    
+    /** \brief Point in frame time at which animation is set to start. 
+      *
+      * Defaults to 0.
+      */
+    float timeOffset;
+    
+    /** \brief Animation speed.
+      *
+      * Defaults to 1.
+      */
+    float timeScale;
+    
+    virtual Matrixf transform();
+    
+    /** \brief Iterates the animation. Without this no animation is performed.*/
+    virtual void iterate(double dt, double t);
+    
+    
+    
+    #ifdef DEBUG_DIYYMA_SPLINES
+    
+    virtual void render(SceneContext ctx);
+    
+    #endif
+    
+};
+
+/** \brief A camera riding piggyback on a scene node. Useful for animation.
+  * 
+  */
+class CameraSceneNode : 
+  public STSceneNode,
+  public ISceneContextSource,
+  public IIterator {
+  
+  public:
+    Matrixf P;
+    double time;
+  
+  public:
+    CameraSceneNode(ISceneNode *parent);
+    virtual ~CameraSceneNode();
+    
+    virtual SceneContext context();
+    
+    virtual void iterate(double dt, double t);
+    
+};
+
 
 #define MAX_STSTM_TEXTURES 8
 
