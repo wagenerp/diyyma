@@ -72,6 +72,15 @@ GLuint loadTextureFile(const char *fn_in, GLuint tex_in,
 }
 #endif
 
+#ifdef _MSC_VER
+Texture::Texture(): 
+  _filename(0), _slot(-1),
+  _target(GL_TEXTURE_2D), _loadHDR(0) {
+  _filename_cube[0] = 0; _filename_cube[1] = 0; _filename_cube[2] = 0;
+  _filename_cube[3] = 0; _filename_cube[4] = 0; _filename_cube[5] = 0; 
+  glGenTextures(1,&_name);
+}
+#else
 Texture::Texture(): 
   _filename(0), _filename_cube{0,0,0,0,0,0},
    _slot(-1), _target(GL_TEXTURE_2D),
@@ -79,6 +88,18 @@ Texture::Texture():
   glGenTextures(1,&_name);
 }
 
+#endif
+
+#ifdef _MSC_VER
+Texture::Texture(const char *fn_in): 
+  _filename(0), _slot(-1), 
+  _target(GL_TEXTURE_2D), _loadHDR(0) {
+  _filename_cube[0] = 0; _filename_cube[1] = 0; _filename_cube[2] = 0;
+  _filename_cube[3] = 0; _filename_cube[4] = 0; _filename_cube[5] = 0; 
+  glGenTextures(1,&_name);
+  load(fn_in,0);
+}
+#else
 Texture::Texture(const char *fn_in): 
   _filename(0), _filename_cube{0,0,0,0,0,0},
    _slot(-1), _target(GL_TEXTURE_2D),
@@ -87,6 +108,8 @@ Texture::Texture(const char *fn_in):
   glGenTextures(1,&_name);
   load(fn_in,0);
 }
+
+#endif
 
 Texture::~Texture() {
   if (_filename) free((void*)_filename);

@@ -86,62 +86,62 @@ struct CubemapData {
 // todo: These matrices were created by hand. Check them.
 const CubemapData CUBEMAP_DATA[6] = {
   {
-    {
+    Matrixf(
       1,0,0,0,
       0,0,1,0,
       0,-1,0,0,
       0,0,0,1 
-    },
+    ),
     GL_TEXTURE_CUBE_MAP_POSITIVE_X,
     "xp"
   },
   {
-    {
+    Matrixf(
       -1,0,0,0,
       0,0,-1,0,
       0,-1,0,0,
       0,0,0,1
-    },
+    ),
     GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
     "xn"
   },
   {
-    {
+    Matrixf(
       0,1,0,0,
       -1,0,0,0,
       0,0,1,0,
       0,0,0,1
-    },
+    ),
     GL_TEXTURE_CUBE_MAP_POSITIVE_Y,
     "yp"
   },
   {
-    {
+    Matrixf(
       0,-1,0,0,
       -1,0,0,0,
       0,0,-1,0,
       0,0,0,1
-    },
+    ),
     GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
     "yn"
   },
   {
-    {
+    Matrixf(
       0,0,1,0,
       -1,0,0,0,
       0,-1,0,0,
       0,0,0,1
-    },
+    ),
     GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
     "zp"
   },
   {
-    {
+    Matrixf(
       0,0,-1,0,
       1,0,0,0,
       0,-1,0,0,
       0,0,0,1
-    },
+    ),
     GL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
     "zn"
   }
