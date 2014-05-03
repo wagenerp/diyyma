@@ -97,5 +97,6 @@ class MaterialLibrary : public IAsset {
 };
 
 AssetRegistry<MaterialLibrary> *reg_mtl();
+void reg_mtl_free();
 
 #endif

@@ -439,3 +439,10 @@ AssetRegistry<Shader> *reg_shd() {
   return _reg_shd;
 }
 
+
+
+void reg_shd_free() {
+  if (!_reg_shd) return;
+  delete _reg_shd;
+  _reg_shd=0;
+}

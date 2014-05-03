@@ -72,7 +72,6 @@ SceneNodeRenderPass::~SceneNodeRenderPass() {
     (*pnode)->drop();
   }
   ARRAY_DESTROY(_nodes);
-  if (_contextSource) _contextSource->drop();
 }
 
 

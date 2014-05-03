@@ -290,3 +290,10 @@ AssetRegistry<Texture> *reg_tex() {
     _reg_tex=new AssetRegistry<Texture>(REPOSITORY_MASK_TEXTURE);
   return _reg_tex;
 }
+
+
+void reg_tex_free() {
+  if (!_reg_tex) return;
+  delete _reg_tex;
+  _reg_tex=0;
+}

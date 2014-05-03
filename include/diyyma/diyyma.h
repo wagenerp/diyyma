@@ -273,11 +273,41 @@ int main(int argn, char **argv) {
   cleanup();
   
   cleanup:
+  #if DIYYMA_RC_NO_AUTODELETE
+    RCObject::ClearDeprecated();
+  #endif
   
-  FOREACH(i,pcomp,component) component_v[i]->drop();
+  reg_shd_free();
+  reg_tex_free();
+  reg_mesh_free();
+  reg_mtl_free();
+  
+  FOREACH(i,pcomp,component) {
+    #ifdef DIYYMA_DEBUG
+      LOG_DEBUG("dropping component %i..\n",i);
+      if (component_v[i]->refcount()>1) {
+        LOG_WARNING(
+          "WARNING: Component #%4i (%.8p) stil referred by something in cleanup!"
+          " (refcount: %i)\n",
+          i,component_v[i],component_v[i]->refcount());
+      }
+    #endif
+    component_v[i]->drop();
+  }
   //FOREACH(i,piter,iterator ) (*piter)->drop();
   ARRAY_DESTROY(component);
   ARRAY_DESTROY(iterator);
+  
+  #if DIYYMA_RC_NO_AUTODELETE
+    RCObject::ClearDeprecated();
+  #endif
+  
+  #if DIYYMA_RC_GLOBAL_LIST
+    #ifdef DIYYMA_DEBUG
+      printf("remaining RCObjects:\n");
+      RCObject::ListObjects();
+    #endif
+  #endif
   
   if (context ) SDL_GL_DeleteContext(context);
   if (renderer) SDL_DestroyRenderer(renderer);

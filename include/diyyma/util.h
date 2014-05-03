@@ -60,7 +60,7 @@
   } \
 }
 
-#define LOG(mask,...) {if(logMask()&mask) { printf(__VA_ARGS__); }}
+#define LOG(mask,...) {if(logMask()&mask) { printf(__VA_ARGS__); fflush(stdout); }}
 #define LOG_ERROR(...) LOG(LOG_MASK_ERROR,__VA_ARGS__)
 #define LOG_WARNING(...) LOG(LOG_MASK_WARNING,__VA_ARGS__)
 #define LOG_DEBUG(...) LOG(LOG_MASK_DEBUG,__VA_ARGS__)
@@ -211,6 +211,26 @@ void vfs_registerPath(const char *path, int mask);
   */
 char *vfs_locate(const char *path, int mask);
 
+#ifdef DIYYMA_DEBUG
+
+template<int chn> class DebugObject {
+  private:
+    static int _instance_count;
+  public:
+    DebugObject() {
+      printf("DO(%i)++: %i\n",chn,++_instance_count);
+      fflush(stdout);
+    }
+    ~DebugObject() {
+      printf("DO(%i)--: %i\n",chn,--_instance_count);
+      fflush(stdout);
+    }
+};
+
+template<int chn> int DebugObject<chn>::_instance_count=0;
+
+#endif
+
 /** \brief Interface for RCObjects. 
   *
   * Used only on other interfaces that
@@ -223,6 +243,7 @@ class IRCObject {
     virtual ~IRCObject() { }
     virtual void grab() =0;
     virtual void drop() =0;
+    virtual int refcount() =0;
 };
 
 /** \brief Reference-count garbage collected objects.
@@ -253,6 +274,21 @@ class RCObject : public virtual IRCObject {
     /** \brief decreases the reference counter by one, deleting the
       * object if it hits zero. */
     virtual void drop();
+    
+    virtual int refcount();
+    
+    #if DIYYMA_RC_NO_AUTODELETE
+    
+    static int ClearDeprecated();
+    
+    #endif
+    
+    
+    #if DIYYMA_RC_NO_AUTODELETE||DIYYMA_RC_GLOBAL_LIST
+    
+    static void ListObjects();
+    
+    #endif
 };
 
 /** \brief Abstract class shared by all assets (shaders, textures, meshes, etc).
@@ -386,16 +422,7 @@ template<class T> class AssetRegistry {
     }
     
     ~AssetRegistry() {
-      int idx;
-      const char **pstr;
-      T **passet;
-      
-      FOREACH(idx,pstr,_names) free((void*)*pstr);
-      FOREACH(idx,passet,_assets) 
-        (*passet)->drop();
-      
-      ARRAY_DESTROY(_assets);
-      ARRAY_DESTROY(_names);
+      clear();
     }
     
     /** \brief Returns a reference to an asset of the specified base name.
@@ -418,12 +445,11 @@ template<class T> class AssetRegistry {
       }
       
       T *res=new T();
+      res->grab();
       if (!res->load(name,flags)) {
-        delete res;
+        res->drop();
         return 0;
       }
-      
-      res->grab();
       
       APPEND(_assets,res);
       APPEND(_names,strdup(name));
@@ -442,17 +468,55 @@ template<class T> class AssetRegistry {
       
       name_tmp=name.dup();
       T *res=new T();
+      res->grab();
       if (!res->load(name_tmp,flags)) {
         free((void*)name_tmp);
-        delete res;
+        res->drop();
         return 0;
       }
-      res->grab();
       
       APPEND(_assets,res);
       APPEND(_names,name_tmp);
       
       return res;
+    }
+    
+    void clear() {
+      int idx;
+      const char **pstr;
+      T **passet;
+      
+      FOREACH(idx,pstr,_names) free((void*)*pstr);
+      FOREACH(idx,passet,_assets) 
+        (*passet)->drop();
+      
+      ARRAY_DESTROY(_assets);
+      ARRAY_DESTROY(_names);
+    }
+    
+    /** \brief Drops all assets noone else is holding a reference to.
+      */
+    int clearDeprecated() {
+      size_t idx;
+      T **passet;
+      const char **pname;
+      size_t n=0,n0=_assets_n;
+      while(n!=_assets_n) {
+        n=_assets_n;
+        FOREACH(idx,passet,_assets) if ((*passet)->refcount()==1) {
+          (*passet)->drop();
+          _assets_v[idx]=_assets_v[--_assets_n];
+          _names_v[idx] =_names_v[--_names_n];
+          passet--;
+          idx--;
+        }
+      }
+      
+      #ifdef DIYYMA_DEBUG
+        printf("cleared assets. remaining: %i of %i\n",_assets_n,n);
+        fflush(stdout);
+      #endif
+      return n0-_assets_n;
     }
 };
 

@@ -144,8 +144,6 @@ void LightController::activate(Shader *shd) {
   
 }
 
-
-
 ISceneNode::ISceneNode(ISceneNode *parent) {
   ARRAY_INIT(_children);
   if (parent) {
@@ -164,10 +162,6 @@ ISceneNode::~ISceneNode() {
     (*pchild)->drop();
   }
   ARRAY_DESTROY(_children);
-  if (_parent) {
-    // this fucking line
-    //_parent->drop();
-  }
 }
 
 ISceneNode *ISceneNode::parent() { return _parent; }

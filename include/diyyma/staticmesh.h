@@ -130,5 +130,6 @@ class IStaticMeshReferrer {
 
 
 AssetRegistry<StaticMesh> *reg_mesh();
+void reg_mesh_free();
 
 #endif

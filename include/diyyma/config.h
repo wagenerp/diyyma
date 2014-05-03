@@ -15,6 +15,9 @@
   */
 #define DIYYMA_TEXTURE_IL 1
 
+#define DIYYMA_RC_NO_AUTODELETE 0
+#define DIYYMA_RC_GLOBAL_LIST 0
+
 #define DEBUG_DIYYMA_SPLINES
 
 #endif

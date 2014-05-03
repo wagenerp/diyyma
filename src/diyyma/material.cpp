@@ -270,11 +270,16 @@ int MaterialLibrary::load(const char *fn, int flags) {
     }
     
   }
+  if (mat) {
+    mat->drop();
+    mat=0;
+  }
   
   // drop materials no longer found in the file
   for(i=0,idx=0;i<refmask_n;i++)
     if (!refmask_v[i]) {
       _materials_v[idx].mat->drop();
+      free((void*)_materials_v[idx].name);
       for(j=idx;j<_materials_n-1;j++)
         _materials_v[idx]=_materials_v[idx+1];
       _materials_n--;
@@ -293,4 +298,10 @@ AssetRegistry<MaterialLibrary> *reg_mtl() {
   if (!_reg_mtl)
     _reg_mtl=new AssetRegistry<MaterialLibrary>(REPOSITORY_MASK_MESH);
   return _reg_mtl;
+}
+
+void reg_mtl_free() {
+  if (!_reg_mtl) return;
+  delete _reg_mtl;
+  _reg_mtl=0;
 }

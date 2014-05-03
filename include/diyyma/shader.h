@@ -138,5 +138,6 @@ class IShaderReferrer {
 };
 
 AssetRegistry<Shader> *reg_shd();
+void reg_shd_free();
 
 #endif

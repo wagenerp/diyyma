@@ -6,8 +6,9 @@
   */
 #include <stdio.h>
 #include <stdlib.h>
-#include "diyyma/util.h"
 #include <string.h>
+#include "diyyma/config.h"
+#include "diyyma/util.h"
 
 int _logMask=LOG_MASK_ERROR|LOG_MASK_WARNING|LOG_MASK_INFO;
 int logMask() { return _logMask; }
@@ -140,9 +141,98 @@ char *vfs_locate(const char *fn, int mask) {
   return 0;
 }
 
-RCObject::RCObject() : _refcount(0) { }
+
+#if DIYYMA_RC_NO_AUTODELETE||DIYYMA_RC_GLOBAL_LIST
+RCObject **__rcobjects_v=0;
+size_t     __rcobjects_n=0;
+#endif
+RCObject::RCObject() {
+  #if DIYYMA_RC_NO_AUTODELETE||DIYYMA_RC_GLOBAL_LIST
+    APPEND(__rcobjects,this);
+    _refcount=1;
+  #else
+    _refcount=0;
+  #endif
+}
 void RCObject::grab() { _refcount++; }
-void RCObject::drop() { _refcount--; if (!_refcount) delete this; }
+void RCObject::drop() { 
+  #if (!DIYYMA_RC_NO_AUTODELETE)&&DIYYMA_RC_GLOBAL_LIST
+    size_t idx;
+    RCObject **pobj;
+    if (_refcount==2) {
+      goto delthis;
+    } else if (_refcount<2) {
+      LOG_WARNING(
+        "WARNING: RCObject %.8p dropped without being grabbed!\n",
+        this);
+      goto delthis;
+    } else _refcount--;
+    
+    return;
+    
+    delthis:
+    FOREACH(idx,pobj,__rcobjects) if ((*pobj)==this) {
+      __rcobjects_v[idx]=__rcobjects_v[--__rcobjects_n];
+      break;
+    }
+    delete this;
+    
+  #else
+    if (_refcount==1) delete this;
+    else if (_refcount<1) {
+      LOG_WARNING(
+        "WARNING: RCObject %.8p dropped without being grabbed!\n",
+        this);
+      delete this;
+    } else _refcount--;
+  #endif
+}
+int RCObject::refcount() { return _refcount; }
+
+#if DIYYMA_RC_NO_AUTODELETE
+
+int RCObject::ClearDeprecated() {
+  int idx;
+  size_t n=0,n0=__rcobjects_n;
+  
+  while(n!=__rcobjects_n) {
+    n=__rcobjects_n;
+    
+    for(idx=0;idx<__rcobjects_n;idx++) if (__rcobjects_v[idx]->refcount()==1) {
+      #ifdef DIYYMA_DEBUG
+        printf("dropping RCObject #%.4i (%.8p)\n",idx,__rcobjects_v[idx]);
+      #endif
+      fflush(stdout);
+      __rcobjects_v[idx]->drop();
+      __rcobjects_v[idx]=__rcobjects_v[--__rcobjects_n];
+      idx--;
+    }
+  }
+  #ifdef DIYYMA_DEBUG
+    printf("dropped %i of %i deprecated RCObjects.\n",
+      n0-__rcobjects_n,n0);
+    fflush(stdout);
+  #endif
+  return n0-__rcobjects_n;
+}
+
+#endif
+
+#if DIYYMA_RC_NO_AUTODELETE||DIYYMA_RC_GLOBAL_LIST
+
+void RCObject::ListObjects() {
+  size_t idx;
+  RCObject **pobj;
+  
+  FOREACH(idx,pobj,__rcobjects) {
+    printf("RCObject #%.4i (%.8p): ",idx,*pobj);
+    fflush(stdout);
+    printf("%4i\n",(*pobj)->refcount());
+    fflush(stdout);
+  }
+}
+
+#endif
 
 double randf() {
   return (double)rand()/(double)RAND_MAX;
