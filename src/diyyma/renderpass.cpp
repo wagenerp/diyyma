@@ -34,6 +34,16 @@ void IRenderPass::beginPass() {
   if (flags&RP_CULL_FACE) {
     glEnable(GL_CULL_FACE); glCullFace(GL_BACK);
   }
+  
+  if (flags&RP_TRANSLUCENT) {
+    
+    glEnable(GL_BLEND); 
+    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+    //glDepthMask(GL_FALSE);
+    
+    glEnable(GL_ALPHA_TEST);
+    glAlphaFunc(1,GL_NEVER);
+  }
 }
 
 void IRenderPass::endPass() {
@@ -41,6 +51,12 @@ void IRenderPass::endPass() {
     glDisable(GL_DEPTH_TEST);
   if (flags&RP_CULL_FACE)
     glDisable(GL_CULL_FACE);
+  
+  if (flags&RP_TRANSLUCENT) {
+    glDisable(GL_BLEND); 
+    glDepthMask(GL_TRUE);
+    glDisable(GL_ALPHA_TEST);
+  }
 }
 
 SceneNodeRenderPass::SceneNodeRenderPass() {

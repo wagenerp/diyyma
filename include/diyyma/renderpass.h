@@ -78,6 +78,11 @@
   */
 #define RP_TRANSFORM_RIGHT 0x200
 
+/** \brief Causes the renderpass to use alpha blending.
+  *
+  */
+#define RP_TRANSLUCENT 0x400
+
 
 
 class IRenderPass : public IComponent {
