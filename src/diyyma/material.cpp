@@ -2,6 +2,26 @@
 #include "diyyma/material.h"
 #include "GL/glew.h"
 
+#ifdef _MSC_VER
+Material::Material() :
+  _u_MVP(0),
+  _u_MV(0),
+  _u_V(0),
+  _u_P(0),
+  _u_time(0),
+  alpha(1),
+  shininess(40),
+  refractionIndex(1),
+  IShaderReferrer(),
+  ITextureReferrer<MAX_MATERIAL_TEXTURES>() {
+  ambient.x=1; ambient.y=1; ambient.z=1;
+  diffuse.x=1; diffuse.y=1; diffuse.z=1;
+  specular.x=1; specular.y=1; specular.z=1;
+  emission.x=1; emission.y=1; emission.z=1;
+  transmission.x=1; transmission.y=1; transmission.z=1;
+  _shaderReferrer=this;
+}
+#else
 Material::Material() :
   _u_MVP(0),
   _u_MV(0),
@@ -21,6 +41,7 @@ Material::Material() :
   
   _shaderReferrer=this;
 }
+#endif
 
 Material::~Material() { }
 
