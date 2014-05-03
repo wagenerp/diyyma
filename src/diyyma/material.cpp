@@ -55,7 +55,7 @@ void Material::updateUniforms() {
 }
 
 void Material::applyUniforms(SceneContext ctx) {
-  if (_u_P   ) glUniformMatrix4fv(_u_P  ,1,0,&ctx.V.a11);
+  if (_u_P   ) glUniformMatrix4fv(_u_P  ,1,0,&ctx.P.a11);
   if (_u_V   ) glUniformMatrix4fv(_u_V  ,1,0,&ctx.V.a11);
   if (_u_MV  ) glUniformMatrix4fv(_u_MV ,1,0,&ctx.MV.a11);
   if (_u_MVP ) glUniformMatrix4fv(_u_MVP,1,0,&ctx.MVP.a11);
@@ -177,7 +177,8 @@ int MaterialLibrary::load(const char *fn, int flags) {
   void *data;
   size_t cb;
   LineScanner *scanner;
-  SubString str;
+  SubString str, str1;
+  char *str_tmp;
   int idx, i,j;
   size_t   imat;
   NamedMaterial *pmat;
@@ -261,6 +262,16 @@ int MaterialLibrary::load(const char *fn, int flags) {
     } else if (str=="map_Ks") {
       if (!scanner->getLnString(&str)) continue;
       mat->addTexture(tex->get(str),"s_specular");
+    } else if (str=="#texture") {
+      if (!scanner->getLnString(&str)) continue;
+      if (!scanner->getLnString(&str1)) continue;
+      str_tmp=str.dup();
+      mat->addTexture(tex->get(str1),str_tmp);
+      free((void*)str_tmp);
+      
+      printf(
+        "added custom texture %.*s at %.*s.\n",
+        str1.length,str1.ptr,str.length,str.ptr);
     } else if (str=="#shader") {
       // todo: investigate if specifying new commands causes problems with
       // common loaders and if so, make it a line comment.

@@ -430,7 +430,7 @@ Matrixf STSTMSceneNode::transform() {
 }
 
 void STSTMSceneNode::applyUniforms(SceneContext ctx) {
-  if (_u_P   ) glUniformMatrix4fv(_u_P  ,1,0,&ctx.V.a11);
+  if (_u_P   ) glUniformMatrix4fv(_u_P  ,1,0,&ctx.P.a11);
   if (_u_V   ) glUniformMatrix4fv(_u_V  ,1,0,&ctx.V.a11);
   if (_u_MV  ) glUniformMatrix4fv(_u_MV ,1,0,&ctx.MV.a11);
   if (_u_MVP ) glUniformMatrix4fv(_u_MVP,1,0,&ctx.MVP.a11);
