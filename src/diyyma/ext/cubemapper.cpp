@@ -136,6 +136,7 @@ GLenum Cubemapper::addColorAttachment() {
   // also enlist it so we can free it later.
   APPEND(_colorAttachment,tex);
   
+  return GL_COLOR_ATTACHMENT0+_colorAttachment_n-1;
 }
 
 Texture *Cubemapper::getColorTexture(unsigned int index) {
