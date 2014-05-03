@@ -44,19 +44,6 @@ int readFile(const char *fn,void **data, size_t *cb) {
   return 1;
 }
 
-char *strdup(const char *str) {
-  int l;
-  char *res;
-  
-  l=strlen(str);
-  
-  res=(char*)malloc(l+1);
-  strcpy(res,str);
-  
-  return res;
-  
-}
-
 #ifdef _WIN32
 #include <windows.h>
 
@@ -162,6 +149,19 @@ double randf() {
 }
 
 
+char *strdup(const char *str) {
+  int l;
+  char *res;
+  
+  l=strlen(str);
+  
+  res=(char*)malloc(l+1);
+  strcpy(res,str);
+  
+  return res;
+  
+}
+
 int strcmp_ic(const char *a, const char *b) {
   
   do {
@@ -177,4 +177,265 @@ int strcmp_ic(const char *a, const char *b) {
   } while(*a || *b);
   
   return 0;
+}
+
+LineScanner::LineScanner() :
+  _data(0), _p(0), _end(0), _newLine(1) {
+  
+}
+
+LineScanner::~LineScanner() { 
+  
+}
+
+void LineScanner::operator=(const char *data) {
+  _data=data;
+  _p=data;
+  _end=_data+strlen(data);
+}
+void LineScanner::assign(const char *data, size_t cb) {
+  _data=data;
+  _p=data;
+  _end=_data+cb;
+}
+
+int LineScanner::seekNewLine() {
+  _newLine=1;
+  
+  while((_p<_end)&&(*_p!='\n')&&(*_p!='\r')) _p++;
+  if (_p>=_end) return 0;
+  
+  while((_p<_end)&&((*_p=='\n')||(*_p=='\r'))) _p++;
+  if (_p>=_end) return 0;
+  return 1;
+}
+
+int LineScanner::getString(SubString *res) {
+  int longstring=0, esc=0, doesc=flags&LINESCANNER_USE_ESCAPE;
+  char quote;
+  _newLine=0;
+  
+  res->ptr=0;
+  res->length=0;
+  
+  while (_p<_end) {
+    if (longstring) {
+      if (esc) esc=0;
+      else if (doesc && (*_p=='\\')) {
+        esc=true;
+      } else if (*_p==quote) { 
+        res->length=(size_t)_p-(size_t)res->ptr;
+        _p++;
+        return 1;
+      }
+    } else if (*_p > ' ') { 
+      if (!res->ptr) {
+        res->ptr=_p;
+        if ((*_p=='"')||(*_p=='\'')) {
+          longstring=1;
+          quote=*_p;
+        }
+      }
+    } else if (res->ptr) {
+      res->length=(size_t)_p-(size_t)res->ptr;
+      while((_p<_end)&&((*_p=='\n')||(*_p=='\r'))) {
+        _newLine=1;
+        _p++;
+      }
+      return 1;
+    }
+    _p++;
+  }
+  if (res->ptr) { 
+    res->length=(size_t)_end-(size_t)res->ptr;
+    return 1;
+  }
+  return 0;
+}
+
+int LineScanner::getLnString(SubString *res) {
+  if (_newLine) return 0;
+  while((_p<_end)&&(*_p<=' ')) {
+    if ((*_p=='\n') || (*_p=='\r')) {
+      res->ptr=0;
+      res->length=0;
+      while((_p<_end)&&((*_p=='\n') || (*_p=='\r'))) _p++;
+      _newLine=1;
+      return 0;
+    }
+    _p++;
+  }
+  
+  return getString(res);
+}
+
+int LineScanner::getLnFirstString(SubString *res) {
+  if (!_newLine && !seekNewLine()) {
+    res->ptr=0;
+    res->length=0;
+    return 0;
+  }
+  
+  return getString(res);
+}
+
+int LineScanner::getLnRemainder(SubString *res) {
+  if (_p>=_end) {
+    res->ptr=0;
+    res->length=0;
+    return 0;
+  }
+  res->ptr=_p;
+  while((_p<_end)&&(*_p!='\r')&&(*_p!='\n')) _p++;
+  res->length=(size_t)_p-(size_t)res->ptr;
+  return 1;
+}
+
+int LineScanner::getLong(long *pres, int nonl) {
+  char buf[32];
+  long res;
+  char *endptr=0;
+  
+  SubString str;
+  if (nonl) {
+    if (!getLnString(&str)) return 0;
+  } else {
+    if (!getString(&str)) return 0;
+  }
+  if (str.length>31) {
+    memcpy(buf,str.ptr,31);
+    buf[31]=0;
+  } else {
+    memcpy(buf,str.ptr,str.length);
+    buf[str.length]=0;
+  }
+  
+  res=strtol(buf,&endptr,0);
+  
+  if (endptr<=buf) 
+    return 0;
+  
+  *pres=res;
+  return 1;
+}
+
+int LineScanner::getULong(unsigned long *pres, int nonl) {
+  char buf[32];
+  unsigned long res;
+  char *endptr=0;
+  
+  SubString str;
+  if (nonl) {
+    if (!getLnString(&str)) return 0;
+  } else {
+    if (!getString(&str)) return 0;
+  }
+  if (str.length>31) {
+    memcpy(buf,str.ptr,31);
+    buf[31]=0;
+  } else {
+    memcpy(buf,str.ptr,str.length);
+    buf[str.length]=0;
+  }
+  
+  res=strtoul(buf,&endptr,0);
+  
+  if (endptr<=buf) 
+    return 0;
+  
+  *pres=res;
+  return 1;
+}
+
+int LineScanner::getDouble(double *pres, int nonl) {
+  char buf[32];
+  double res;
+  char *endptr=0;
+  
+  SubString str;
+  if (nonl) {
+    if (!getLnString(&str)) return 0;
+  } else {
+    if (!getString(&str)) return 0;
+  }
+  if (str.length>31) {
+    memcpy(buf,str.ptr,31);
+    buf[31]=0;
+  } else {
+    memcpy(buf,str.ptr,str.length);
+    buf[str.length]=0;
+  }
+  
+  res=strtod(buf,&endptr);
+  
+  if (endptr<=buf) 
+    return 0;
+  
+  *pres=res;
+  return 1;
+}
+
+
+int LineScanner::getFloat(float *pres, int nonl) {
+  char buf[32];
+  double res;
+  char *endptr=0;
+  
+  SubString str;
+  if (nonl) {
+    if (!getLnString(&str)) return 0;
+  } else {
+    if (!getString(&str)) return 0;
+  }
+  if (str.length>31) {
+    memcpy(buf,str.ptr,31);
+    buf[31]=0;
+  } else {
+    memcpy(buf,str.ptr,str.length);
+    buf[str.length]=0;
+  }
+  
+  res=strtod(buf,&endptr);
+  
+  if (endptr<=buf) 
+    return 0;
+  
+  *pres=(float)res;
+  return 1;
+}
+
+int LineScanner::getOBJFaceCorner(long *pres, int nonl) {
+  int i;
+  const char *p, *e;
+  
+  SubString str;
+  if (nonl) {
+    if (!getLnString(&str)) return 0;
+  } else {
+    if (!getString(&str)) return 0;
+  }
+  
+  p=str.ptr;
+  e=str.ptr+str.length;
+  for(i=0;i<3;i++) {
+    pres[i]=0;
+    while (p<e) {
+      if ((*p>='0') && (*p<='9')) {
+        pres[i]=pres[i]*10+(*p-'0');
+      } else if (*p=='/') {
+        p++;
+        break;
+      } else {
+        return 0;
+      }
+      p++;
+    }
+    pres[i]--;
+  }
+  
+  if (p<e)
+    return 0;
+  
+  return 1;
+  
 }

@@ -19,6 +19,7 @@
 #include "GL/glew.h"
 
 #include "diyyma/util.h"
+#include "diyyma/material.h"
 
 
 #define BUFIDX_VERTICES 0 ///< \brief layout index for vertex streams
@@ -50,7 +51,22 @@ struct ArrayBuffer {
   
 };
 
+struct MaterialSlice {
+  Material *mat;
+  int       vertexCount;
+  int       vertexOffset;
+};
+
 #define MAX_ARRAY_BUFFERS 6
+
+/** \brief Represents a single mesh of static data.
+  * 
+  * This data consists of any number of array buffers of various purposes
+  * (See BUFIDX_* constants) and one or more materials.
+  * Each material is responsible for a continuous block of vertices and is
+  * specified only by its name, to be loaded and handled by surrounding objects 
+  * such as scene nodes.
+  */
 
 class StaticMesh : public IAsset {
   private:
@@ -58,10 +74,15 @@ class StaticMesh : public IAsset {
     ArrayBuffer _buffers[MAX_ARRAY_BUFFERS];
     char *_filename;
     int _fileFormat;
+    ARRAY(MaterialSlice,_materials);
     
   public:
     StaticMesh();
     ~StaticMesh();
+    
+    size_t materialCount();
+    const MaterialSlice &material(int idx);
+    
     
     void loadOBJ(char *code);
     int loadOBJFile(const char *fn);
@@ -69,7 +90,18 @@ class StaticMesh : public IAsset {
     
     void bind();
     void unbind();
+    /** \brief Renders all faces using the currently configured material.*/
     void send();
+    /** \brief Renders faces assigned with a single material using the 
+      * currently configured material. */
+    void send(int idx);
+    
+    /** \brief Renders all geometry using assigned materials.
+      *
+      * This is a compbination of bind, send and unbind, all in one call.
+      *
+      */
+    void render(SceneContext ctx);
     
     void clear();
     
@@ -96,5 +128,7 @@ class IStaticMeshReferrer {
     
 };
 
+
+AssetRegistry<StaticMesh> *reg_mesh();
 
 #endif

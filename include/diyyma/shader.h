@@ -137,4 +137,6 @@ class IShaderReferrer {
     virtual void updateUniforms() =0;
 };
 
+AssetRegistry<Shader> *reg_shd();
+
 #endif

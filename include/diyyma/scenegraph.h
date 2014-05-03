@@ -23,57 +23,7 @@
 #include "diyyma/texture.h"
 #include "diyyma/util.h"
 #include "diyyma/math.h"
-
-/** \brief Data to be passed to scene nodes for processing,
-  * containing information such as the current projection matrix.
-  *
-  * Also, this is used for sharing a common view/projection among 
-  * multiple components, e.g. an FPSCameraComponent usually generates
-  * a SceneContext, which is then fed into a SceneNodeRenderPass, etc.
-  */
-struct SceneContext {
-  Matrixf MVP; ///<\brief The current model-view-projection matrix.
-  Matrixf MV;  ///<\brief The current model-view matrix.
-  Matrixf V;   ///<\brief The current view matrix.
-  Matrixf P;   ///<\brief The current projection matrix.
-  
-  double time; ///<\brief The current frame time.
-  
-  void setIdentity() {
-    P.setIdentity();
-    V.setIdentity();
-    MV.setIdentity();
-    MVP.setIdentity();
-    time=0;
-  }
-  
-};
-
-/** \brief Interface for a source of a scene context, usually something
-  * like a camera or an offscreen render pass.
-  *
-  * \todo This should be an RCObject, however i cannot figure out how to
-  * actually make this happen as implementing classes are RCObjects already
-  * and virtual inheritance seems to produce segfaults.
-  */
-class ISceneContextSource : public virtual IRCObject {
-  
-  public:
-    virtual ~ISceneContextSource() { }
-    virtual SceneContext context() =0;
-};
-
-class ISceneContextReferrer {
-  protected:
-    ISceneContextSource *_contextSource;
-  
-  public:
-    ISceneContextReferrer();
-    ~ISceneContextReferrer();
-    
-    ISceneContextSource *contextSource();
-    void setContextSource(ISceneContextSource *l);
-};
+#include "diyyma/scenecontext.h"
 
 class LightSceneNode;
 
@@ -353,6 +303,29 @@ class STSTMSceneNode :
     
     virtual void applyUniforms(SceneContext ctx);
   
+};
+
+/** \brief Static transform multi-material mesh.
+  * 
+  * In contrast to the STSTMSceneNode, this node will not apply any shaders or
+  * textures when rendering a mesh.
+  * Instead, the mesh's own materials are used in rendering.
+  */
+class STMMSceneNode : 
+  public IRenderableSceneNode,
+  public IStaticMeshReferrer,
+  public ILightControllerReferrer {
+  
+  public:
+    STMMSceneNode(ISceneNode *parent);
+    ~STMMSceneNode();
+    
+    Matrixf staticTransform;
+    
+    virtual void render(SceneContext ctx);
+    
+    virtual Matrixf transform();
+    
 };
 
 

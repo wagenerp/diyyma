@@ -282,3 +282,11 @@ int Texture::load(const char *fn, int flags) {
   }
   return 1;
 }
+
+
+AssetRegistry<Texture> *_reg_tex=0;
+AssetRegistry<Texture> *reg_tex() {
+  if (!_reg_tex)
+    _reg_tex=new AssetRegistry<Texture>(REPOSITORY_MASK_TEXTURE);
+  return _reg_tex;
+}

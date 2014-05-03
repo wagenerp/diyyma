@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define SDL_ASSERT_WARN(r,name) { \
   if (!(r)) { \
@@ -76,17 +77,10 @@
 #define ERROR(...) { LOG_ERROR(__VA_ARGS__); return 0; }
 #define ERRORJ(lbl,...) { LOG_ERROR(__VA_ARGS__); goto lbl; }
 
-#ifdef _MSC_VER
 #define APPEND(n,o) \
   (n##_v=(decltype(n##_v))realloc( \
     (void*)(n##_v), \
     sizeof(decltype(*n##_v))*((n##_n)+1)))[(n##_n)++]=o;
-#else
-#define APPEND(n,o) \
-  (n##_v=(decltype(n##_v))realloc( \
-    (void*)(n##_v), \
-    sizeof(decltype(*n##_v))*((n##_n)+1)))[(n##_n)++]=o;
-#endif
 
 #define ARRAY(t,n) \
   t *n##_v; \
@@ -106,18 +100,10 @@
     n##_v=0; \
     n##_n=0; \
   }
-
-#ifdef _MSC_VER
 #define ARRAY_SETSIZE(n,o) \
   n##_v=(decltype(n##_v))realloc( \
     (void*)(n##_v), \
     sizeof(decltype(*n##_v))*(++(n##_n)));
-#else
-#define ARRAY_SETSIZE(n,o) \
-  n##_v=(decltype(n##_v))realloc( \
-    (void*)(n##_v), \
-    sizeof(decltype(*n##_v))*(++(n##_n)));
-#endif
 
 #define FOREACH(i,o,n) \
   for((i)=0,(o)=(n##_v);(i)<(n##_n);(i)++,(o)++)
@@ -139,10 +125,34 @@ typedef unsigned long long int timestamp_t;
 int logMask();
 void setLogMask(int v);
 
-/** \brief Text-to-speech interface */
-void speakrf(char *fmt,...);
-
-char *strdup(const char *str);
+/** String type using start and length representation on a constant buffer
+  * used for processing data.
+  */
+struct SubString {
+  const char *ptr;
+  size_t length;
+  
+  char *dup() const {
+    char *res;
+    
+    res=(char*)malloc(length+1);
+    memcpy(res,ptr,length);
+    res[length]=0;
+    
+    return res;
+  }
+  
+  int operator==(const SubString &str) const {
+    return (length==str.length) && (memcmp(ptr,str.ptr,length)==0);
+  }
+  
+  int operator==(const char *str) const {
+    return (strncmp(ptr,str,length)==0) && (str[length]==0);
+  }
+  
+  
+  
+};
 
 /** \brief Reads the whole of a specified file into a buffer.
   *
@@ -340,6 +350,7 @@ template<class T, class K> void sortByKeys(T *objects, K *keys, size_t n) {
 
 double randf();
 
+char *strdup(const char *str);
 int strcmp_ic(const char *a, const char *b);
 
 /** \brief Asset manager for a single type of asset. 
@@ -377,8 +388,11 @@ template<class T> class AssetRegistry {
     ~AssetRegistry() {
       int idx;
       const char **pstr;
+      T **passet;
       
       FOREACH(idx,pstr,_names) free((void*)*pstr);
+      FOREACH(idx,passet,_assets) 
+        (*passet)->drop();
       
       ARRAY_DESTROY(_assets);
       ARRAY_DESTROY(_names);
@@ -409,12 +423,165 @@ template<class T> class AssetRegistry {
         return 0;
       }
       
+      res->grab();
+      
       APPEND(_assets,res);
       APPEND(_names,strdup(name));
       
       return res;
     }
     
+    T *get(const SubString &name, int flags=0) {
+      int idx;
+      const char **pstr;
+      char *str;
+      char *name_tmp;
+      FOREACH(idx,pstr,_names) if (name==*pstr) {
+        return _assets_v[idx];
+      }
+      
+      name_tmp=name.dup();
+      T *res=new T();
+      if (!res->load(name_tmp,flags)) {
+        free((void*)name_tmp);
+        delete res;
+        return 0;
+      }
+      res->grab();
+      
+      APPEND(_assets,res);
+      APPEND(_names,name_tmp);
+      
+      return res;
+    }
+};
+
+/** \brief Line scanner flag. Causes long string escapes to be read, but not
+  * processed.
+  */
+#define LINESCANNER_USE_ESCAPE 0x01
+
+class LineScanner : public RCObject {
+  private:
+    const char *_data;
+    const char *_p, *_end;
+    int _newLine;
+  
+  public:
+    LineScanner();
+    ~LineScanner();
+    
+    int flags;
+    
+    void operator=(const char *data);
+    
+    void assign(const char *data, size_t cb);
+    
+    /** \brief Attempts to seek the beginning of a new line.
+      *
+      * The method skips over a sequence of non-newline characters followed
+      * by newline characters:
+      *         [^\r\n]+[\r\n]+
+      *
+      * If this sequence does not exist, 0 is returned, otherwise 1 is returned
+      * and the stream position is adjusted.
+      */
+    int seekNewLine();
+    
+    /** \brief Reads a single string from the stream.
+      *
+      * That is either a sequence of non-whitespace characters or
+      * a sequence of any characters encapsulated in quotes.
+      *
+      * If the LINESCANNER_USE_ESCAPE flag is set, quotes inside long strings
+      * can be escaped using the escape character (\).
+      *
+      * \return 1 on success, 0 if no such string exists.
+      */
+    int getString(SubString *res);
+    
+    /** \brief Reads a single string from the stream without crossing over
+      * into a new line.
+      *
+      * See getString for more details on what is recognized as a string.
+      *
+      * \return 1 on success, 0 if no such string exists.
+      */
+    int getLnString(SubString *res);
+    
+    /** \brief Reads a single string from the beginning of a new line.
+      *
+      * If a previous operation left the stream cursor at the beginning
+      * of a line, the first string of this current line is read instead.
+      *
+      * \return 1 on success, 0 if no such string exists.
+      */
+    int getLnFirstString(SubString *res);
+    
+    /** \brief Reads the entire remainder of the current line, including
+      * leading and trailing white spaces, excluding any trailing newline 
+      * characters.
+      */
+    int getLnRemainder(SubString *res);
+    
+    /** \brief Attempts to read a single string and interprete it as a long
+      * integer.
+      *
+      * If a string exists but it is not a valid long integer representation,
+      * the stream cursor is incremented anyway.
+      *
+      * Refer to strtol for details on what is recognized as a long int literal.
+      *
+      * \param nonl Set to non-zero to use getLnString internally, instead
+      * of getString.
+      */
+    int getLong(long *pres, int nonl=0);
+    
+    /** \brief Attempts to read a single string and interprete it as an unsigned
+      * long integer.
+      *
+      * If a string exists but it is not a valid unsigned long integer 
+      * representation, the stream cursor is incremented anyway.
+      *
+      * Refer to strtoul for details on what is recognized as a long int 
+      * literal.
+      *
+      * \param nonl Set to non-zero to use getLnString internally, instead
+      * of getString.
+      */
+    int getULong(unsigned long *pres, int nonl=0);
+    
+    
+    /** \brief Attempts to read a single string and interprete it as a double.
+      *
+      * If a string exists but it is not a valid double representation,
+      * the stream cursor is incremented anyway.
+      *
+      * Refer to strtol for details on what is recognized as a long int literal.
+      *
+      * \param nonl Set to non-zero to use getLnString internally, instead
+      * of getString.
+      */
+    int getDouble(double *pres, int nonl=0);
+    
+    /** \brief Attempts to read a single string and interprete it as a float.
+      *
+      * If a string exists but it is not a valid float representation,
+      * the stream cursor is incremented anyway.
+      *
+      * Refer to strtol for details on what is recognized as a long int literal.
+      *
+      * \param nonl Set to non-zero to use getLnString internally, instead
+      * of getString.
+      */
+    int getFloat(float *pres, int nonl=0);
+    
+    /** \brief Attempts to read up to three values separated by forward slashes,
+      * bringing them from a 1-first index semantic to a 0-first semantic.
+      *
+      * This is useful for loading .obj files.
+      */
+    int getOBJFaceCorner(long *pres, int nonl=0);
 };
 
 

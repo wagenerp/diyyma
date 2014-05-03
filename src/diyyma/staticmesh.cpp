@@ -29,6 +29,13 @@ StaticMesh::~StaticMesh() {
     glDeleteBuffers(1,&_buffers[i].handle);
 }
 
+size_t StaticMesh::materialCount() { 
+  return _materials_n;
+}
+const MaterialSlice &StaticMesh::material(int idx) {
+  return _materials_v[idx];
+}
+
 /** \brief A single material found in a .mtl file referenced by an OBJ file.
   * 
   * \todo Implement various properties.
@@ -182,7 +189,7 @@ class OBJLoader {
     int nNormals;
     int nTexCoords;
     int nTriangles;
-
+    
     int i;
     float buf[6];
     int bufi[9];
@@ -408,17 +415,248 @@ class OBJLoader {
     
 };
 
+union face_t {
+  struct {
+    long v0[3];
+    long v1[3];
+    long v2[3];
+    long imat;
+    long omat;
+  };
+  long v[11];
+  
+  long &operator[](int idx) { return v[idx]; }
+};
+
 void StaticMesh::loadOBJ(char *code) {
+  LineScanner *scanner;
+  SubString str;
+  Vector3f bv;
+  MaterialLibrary *mtlib=0;
+  int imat=-1;
+  SubString smat;
+  MaterialSlice mat;
+  face_t face;
+  AssetRegistry<MaterialLibrary> *mtl;
+  void *buffer=0;
+  Vector3f *pvec3;
+  Vector2f *pvec2;
+  size_t idx, idxo;
+  int i;
+  ArrayBuffer *bufv;
+  
+  smat.ptr=0;
+  ARRAY(Vector3f,vertices);
+  ARRAY(Vector3f,normals);
+  ARRAY(Vector2f,texcoords);
+  ARRAY(Vector3f,tangents);
+  ARRAY(Vector3f,binormals);
+  ARRAY(face_t,faces);
+  
+  // cleanup previously loaded data
   clear();
   
-  OBJLoader *loader=new OBJLoader();
+  // init temporary structures
+  ARRAY_INIT(vertices);
+  ARRAY_INIT(normals);
+  ARRAY_INIT(texcoords);
+  ARRAY_INIT(tangents);
+  ARRAY_INIT(binormals);
+  ARRAY_INIT(faces);  
+  mtl=reg_mtl();
   
-  loader->parse(code);
+  // scan the obj file
+  scanner=new LineScanner();
+  scanner->grab();
+  *scanner=code;
   
-  _vertexCount=loader->vertexCount();
-  loader->build(_buffers);
+  while(scanner->getLnFirstString(&str)) {
+    if (str=="v") {
+      if (!scanner->getFloat(&bv.x,1)) continue;
+      if (!scanner->getFloat(&bv.y,1)) continue;
+      if (!scanner->getFloat(&bv.z,1)) continue;
+      APPEND(vertices,bv);
+    } else if ((str=="n")||(str=="vn")) {
+      if (!scanner->getFloat(&bv.x,1)) continue;
+      if (!scanner->getFloat(&bv.y,1)) continue;
+      if (!scanner->getFloat(&bv.z,1)) continue;
+      APPEND(normals,bv);
+    } else if ((str=="#b")||(str=="#vb")) {
+      if (!scanner->getFloat(&bv.x,1)) continue;
+      if (!scanner->getFloat(&bv.y,1)) continue;
+      if (!scanner->getFloat(&bv.z,1)) continue;
+      APPEND(binormals,bv);
+    } else if ((str=="#t")||(str=="#vt")) {
+      if (!scanner->getFloat(&bv.x,1)) continue;
+      if (!scanner->getFloat(&bv.y,1)) continue;
+      if (!scanner->getFloat(&bv.z,1)) continue;
+      APPEND(tangents,bv);
+    } else if (str=="vt") {
+      if (!scanner->getFloat(&bv.x,1)) continue;
+      if (!scanner->getFloat(&bv.y,1)) continue;
+      APPEND(texcoords,*(Vector2f*)&bv);
+    } else if (str=="mtllib") {
+      if (!scanner->getLnString(&str)) continue;
+      if (mtlib) mtlib->drop();
+      mtlib=mtl->get(str);
+      if (mtlib) mtlib->grab();
+    } else if (str=="usemtl") {
+      scanner->getLnString(&smat);
+    } else if (str=="f") {
+      if (vertices_n<1) continue;
+      if (!scanner->getOBJFaceCorner(face.v0,1)) continue;
+      if (!scanner->getOBJFaceCorner(face.v1,1)) continue;
+      if (!scanner->getOBJFaceCorner(face.v2,1)) continue;
+      if ((face[0]<0)||(face[0]>=vertices_n )) face[0]= 0;
+      if ((face[3]<0)||(face[3]>=vertices_n )) face[3]= 0;
+      if ((face[1]<0)||(face[1]>=texcoords_n)) face[1]=-1;
+      if ((face[4]<0)||(face[4]>=texcoords_n)) face[4]=-1;
+      if ((face[2]<0)||(face[2]>=normals_n  )) face[2]=-1;
+      if ((face[5]<0)||(face[5]>=normals_n  )) face[5]=-1;
+      if ((imat<0) || (smat.ptr)) {
+        if (smat.ptr&&mtlib) {
+          mat.mat=mtlib->get(smat,1);
+        } else {
+          mat.mat=new Material();
+        }
+        mat.mat->grab();
+        mat.vertexCount=0;
+        APPEND(_materials,mat);
+        imat=_materials_n-1;
+        smat.ptr=0;
+        smat.length=0;
+      }
+      
+      face[9]=imat;
+      
+      do {
+        if ((face[6]<0)||(face[6]>=vertices_n )) face[6]= 0;
+        if ((face[7]<0)||(face[7]>=texcoords_n)) face[7]=-1;
+        if ((face[8]<0)||(face[8]>=normals_n  )) face[8]=-1;
+        face[10]=_materials_v[imat].vertexCount;
+        APPEND(faces,face);
+        _materials_v[imat].vertexCount+=3;
+        memcpy(face.v1,face.v2,sizeof(long)*3);
+      } while(scanner->getOBJFaceCorner(face.v2,1));
+      
+    }
+  }
   
-  delete loader;
+  if (!_materials_n) goto cleanup;
+  
+  // compute per-material vertex offsets.
+  _materials_v[0].vertexOffset=0;
+  for(idx=1;idx<_materials_n;idx++)
+    _materials_v[idx].vertexOffset=
+      _materials_v[idx-1].vertexOffset+
+      _materials_v[idx-1].vertexCount;
+  // allocate enough buffer space to assemble final vertex buffers.
+  // That is, three vectors per face
+  _vertexCount=faces_n*3;
+  buffer=malloc(sizeof(Vector3f)*_vertexCount);
+  
+  // assemble and send array buffers
+  bufv=_buffers;
+  
+  
+  // vertices
+  vertices:
+  for(idx=0;idx<faces_n;idx++) {
+    idxo=faces_v[idx].omat+_materials_v[faces_v[idx].imat].vertexOffset;
+    for(i=0;i<3;i++)
+      ((Vector3f*)buffer)[idxo+i]=vertices_v[faces_v[idx][i*3]];
+  }
+  if (!bufv->handle) glGenBuffers(1,&bufv->handle);
+  bufv->index    =BUFIDX_VERTICES;
+  bufv->type     =GL_FLOAT;
+  bufv->dimension=3;
+  glBindBuffer(GL_ARRAY_BUFFER,bufv->handle);
+  glBufferData(GL_ARRAY_BUFFER,_vertexCount*3*sizeof(float),buffer,GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER,0);
+  bufv++;
+  
+  
+  normals:
+  if (!normals_n) goto texcoords;
+  for(idx=0;idx<faces_n;idx++) {
+    idxo=faces_v[idx].omat+_materials_v[faces_v[idx].imat].vertexOffset;
+    for(i=0;i<3;i++) if (faces_v[idx][i*3+2]>-1)
+      ((Vector3f*)buffer)[idxo+i]=normals_v[faces_v[idx][i*3+2]];
+  }
+  if (!bufv->handle) glGenBuffers(1,&bufv->handle);
+  bufv->index    =BUFIDX_NORMALS;
+  bufv->type     =GL_FLOAT;
+  bufv->dimension=3;
+  glBindBuffer(GL_ARRAY_BUFFER,bufv->handle);
+  glBufferData(GL_ARRAY_BUFFER,_vertexCount*3*sizeof(float),buffer,GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER,0);
+  bufv++;
+  
+  binormals:
+  if (binormals_n<normals_n) goto tangents;
+  for(idx=0;idx<faces_n;idx++) {
+    idxo=faces_v[idx].omat+_materials_v[faces_v[idx].imat].vertexOffset;
+    for(i=0;i<3;i++) if (faces_v[idx][i*3+2]>-1)
+      ((Vector3f*)buffer)[idxo+i]=binormals_v[faces_v[idx][i*3+2]];
+  }
+  if (!bufv->handle) glGenBuffers(1,&bufv->handle);
+  bufv->index    =BUFIDX_BINORMALS;
+  bufv->type     =GL_FLOAT;
+  bufv->dimension=3;
+  glBindBuffer(GL_ARRAY_BUFFER,bufv->handle);
+  glBufferData(GL_ARRAY_BUFFER,_vertexCount*3*sizeof(float),buffer,GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER,0);
+  bufv++;
+  
+  tangents:
+  if (tangents_n<normals_n) goto texcoords;
+  for(idx=0;idx<faces_n;idx++) {
+    idxo=faces_v[idx].omat+_materials_v[faces_v[idx].imat].vertexOffset;
+    for(i=0;i<3;i++) if (faces_v[idx][i*3+2]>-1)
+      ((Vector3f*)buffer)[idxo+i]=tangents_v[faces_v[idx][i*3+2]];
+  }
+  if (!bufv->handle) glGenBuffers(1,&bufv->handle);
+  bufv->index    =BUFIDX_TANGENTS;
+  bufv->type     =GL_FLOAT;
+  bufv->dimension=3;
+  glBindBuffer(GL_ARRAY_BUFFER,bufv->handle);
+  glBufferData(GL_ARRAY_BUFFER,_vertexCount*3*sizeof(float),buffer,GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER,0);
+  bufv++;
+  
+  
+  texcoords:
+  if (!texcoords_n) goto done_buffers;
+  for(idx=0;idx<faces_n;idx++) {
+    idxo=faces_v[idx].omat+_materials_v[faces_v[idx].imat].vertexOffset;
+    for(i=0;i<3;i++) if (faces_v[idx][i*3+1]>-1)
+      ((Vector2f*)buffer)[idxo+i]=texcoords_v[faces_v[idx][i*3+1]];
+  }
+  if (!bufv->handle) glGenBuffers(1,&bufv->handle);
+  bufv->index    =BUFIDX_TEXCOORDS;
+  bufv->type     =GL_FLOAT;
+  bufv->dimension=2;
+  glBindBuffer(GL_ARRAY_BUFFER,bufv->handle);
+  glBufferData(GL_ARRAY_BUFFER,_vertexCount*2*sizeof(float),buffer,GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER,0);
+  bufv++;
+  
+  done_buffers:
+  free(buffer);
+  
+  // cleanup
+  
+  cleanup:
+  
+  scanner->drop();
+  ARRAY_DESTROY(vertices);
+  ARRAY_DESTROY(normals);
+  ARRAY_DESTROY(texcoords);
+  ARRAY_DESTROY(tangents);
+  ARRAY_DESTROY(binormals);
+  ARRAY_DESTROY(faces);
+  if (mtlib) mtlib->drop();
+  
 }
 
 int StaticMesh::loadDOFFile(const char *fn_in) {
@@ -561,10 +799,10 @@ int StaticMesh::loadDOFFile(const char *fn_in) {
 }
 
 int StaticMesh::loadOBJFile(const char *fn_in) {
-  
   void *data;
   size_t cb;
   char *fn;
+  
   
   if (!(fn=vfs_locate(fn_in,REPOSITORY_MASK_MESH))) {
     LOG_WARNING(
@@ -617,13 +855,46 @@ void StaticMesh::send() {
   glDrawArrays(GL_TRIANGLES,0,_vertexCount);
 }
 
+void StaticMesh::send(int idx) {
+  if ((idx<0)||(idx>=_materials_n)) return;
+  glDrawArrays(
+    GL_TRIANGLES,
+    _materials_v[idx].vertexOffset,
+    _materials_v[idx].vertexCount);
+}
+
+void StaticMesh::render(SceneContext ctx) {
+  size_t idx;
+  MaterialSlice *pmat;
+  
+  bind();
+  FOREACH(idx,pmat,_materials) {
+    pmat->mat->bind(ctx);
+    glDrawArrays(
+      GL_TRIANGLES,
+      pmat->vertexOffset,
+      pmat->vertexCount);
+    pmat->mat->unbind();
+  }
+  
+  unbind();
+}
+
 void StaticMesh::clear() {
   int i;
+  size_t idx;
+  MaterialSlice *pmat;
+  
   _vertexCount=0;
   for(i=0;i<MAX_ARRAY_BUFFERS;i++) if (_buffers[i].handle) {
     glDeleteBuffers(1,&_buffers[i].handle);
   }
   memset(_buffers,0,sizeof(_buffers));
+  
+  FOREACH(idx,pmat,_materials) 
+    pmat->mat->drop();
+  ARRAY_DESTROY(_materials);
+  
   
   if (_filename) free((void*)_filename);
   _filename=0;
@@ -673,4 +944,12 @@ void IStaticMeshReferrer::setMesh(StaticMesh *m) {
   if (_mesh) {
     _mesh->grab();
   }
+}
+
+
+AssetRegistry<StaticMesh> *_reg_mesh=0;
+AssetRegistry<StaticMesh> *reg_mesh() {
+  if (!_reg_mesh)
+    _reg_mesh=new AssetRegistry<StaticMesh>(REPOSITORY_MASK_MESH);
+  return _reg_mesh;
 }

@@ -241,4 +241,6 @@ template<int N> class ITextureReferrer {
     
 };
 
+AssetRegistry<Texture> *reg_tex();
+
 #endif

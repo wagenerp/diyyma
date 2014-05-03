@@ -51,6 +51,9 @@ typedef Vector2<int> Vector2i;
 float modf(float a, float b);
 double modf(double a, double b);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreorder"
+
 template <class T> struct Matrix {
   public:
     #if MATRIX_COLUMN_FIRST
@@ -1202,5 +1205,8 @@ template<class T> Quaternion<T> lerp(
   if (a<0) return q0*(1-t)-q1*t;
   else     return q0*(1-t)+q1*t;
 }
+
+// ignored -Wreorder
+#pragma GCC diagnostic pop
 
 #endif

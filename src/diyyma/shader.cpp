@@ -429,3 +429,13 @@ void IShaderReferrer::setShader(Shader *s) {
     updateUniforms();
   }
 }
+
+
+
+AssetRegistry<Shader> *_reg_shd=0;
+AssetRegistry<Shader> *reg_shd() {
+  if (!_reg_shd)
+    _reg_shd=new AssetRegistry<Shader>(REPOSITORY_MASK_SHADER);
+  return _reg_shd;
+}
+

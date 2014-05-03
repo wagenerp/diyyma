@@ -3,25 +3,6 @@
 #include "diyyma/scenegraph.h"
 #include "diyyma/util.h"
 
-ISceneContextReferrer::ISceneContextReferrer() :
-  _contextSource(0) {
-}
-
-ISceneContextReferrer::~ISceneContextReferrer() {
-  if (_contextSource) _contextSource->drop();
-}
-
-
-ISceneContextSource *ISceneContextReferrer::contextSource() { 
-  return _contextSource; 
-}
-void ISceneContextReferrer::setContextSource(ISceneContextSource *s) {
-  if (s==_contextSource) return;
-  if (_contextSource) _contextSource->drop();
-  _contextSource=s;
-  if (_contextSource) _contextSource->grab();
-}
-
 
 ILightControllerReferrer::ILightControllerReferrer() :
   _lightController(0) {
@@ -407,7 +388,6 @@ STSTMSceneNode::STSTMSceneNode(ISceneNode *parent) :
 }
 
 STSTMSceneNode::~STSTMSceneNode() {
-  if (_lightController) _lightController->drop();
   
 }
 
@@ -463,4 +443,47 @@ void STSTMSceneNode::applyUniforms(SceneContext ctx) {
   if (_u_time) glUniform1f(_u_time,ctx.time);
   if (_lightController) _lightController->activate(_shader);
   
+}
+
+
+STMMSceneNode::STMMSceneNode(ISceneNode *parent) : 
+  IRenderableSceneNode(parent),
+  IStaticMeshReferrer()
+  {
+  staticTransform.setIdentity();
+}
+
+STMMSceneNode::~STMMSceneNode() {
+}
+
+void STMMSceneNode::render(SceneContext ctx) {
+  size_t idx, nmat;
+  Material *mat;
+  Matrixf M;
+  
+  
+  M=absTransform();
+  ctx.MV*=M;
+  ctx.MVP*=M;
+  
+  if (!_mesh) return;
+  if (_lightController) {
+    _mesh->bind();
+    nmat=_mesh->materialCount();
+    for(idx=0;idx<nmat;idx++) {
+      mat=_mesh->material(idx).mat;
+      mat->bind(ctx);
+      if (mat->shader()) _lightController->activate(mat->shader());
+      _mesh->send(idx);
+      mat->unbind();
+    }
+    _mesh->unbind();
+  } else {
+    _mesh->render(ctx);
+  }
+  
+}
+
+Matrixf STMMSceneNode::transform() {
+  return staticTransform;
 }
