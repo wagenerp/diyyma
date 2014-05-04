@@ -21,6 +21,7 @@
 struct SceneContext {
   Matrixf MVP; ///<\brief The current model-view-projection matrix.
   Matrixf MV;  ///<\brief The current model-view matrix.
+  Matrixf M;   ///<\brief The current model matrix.
   Matrixf V;   ///<\brief The current view matrix.
   Matrixf P;   ///<\brief The current projection matrix.
   
@@ -29,6 +30,7 @@ struct SceneContext {
   void setIdentity() {
     P.setIdentity();
     V.setIdentity();
+    M.setIdentity();
     MV.setIdentity();
     MVP.setIdentity();
     time=0;

@@ -93,11 +93,11 @@ const char *light_uniforms[][MAX_LIGHTS]={
 };
 
 
-LightController::LightController() {
+SimpleLightController::SimpleLightController() {
   ARRAY_INIT(_nodes);
 }
 
-LightController::~LightController() {
+SimpleLightController::~SimpleLightController() {
   size_t idx;
   LightSceneNode **pnode;
   FOREACH(idx,pnode,_nodes) {
@@ -106,14 +106,14 @@ LightController::~LightController() {
   ARRAY_DESTROY(_nodes);
 }
 
-void LightController::operator+=(LightSceneNode *node) {
+void SimpleLightController::operator+=(LightSceneNode *node) {
   if (_nodes_n>=MAX_LIGHTS) return;
   node->grab();
   APPEND(_nodes,node);
 }
 
 
-void LightController::activate(Shader *shd) {
+void SimpleLightController::activate(Shader *shd) {
   GLuint loc;
   size_t idx;
   LightSceneNode **pnode;
@@ -341,6 +341,10 @@ void CubicBezierSceneNode::render(SceneContext ctx) {
     }
   glEnd();
 }
+
+void CubicBezierSceneNode::sendGeometry() {
+
+}
 #endif
 
 
@@ -373,6 +377,7 @@ STSTMSceneNode::STSTMSceneNode(ISceneNode *parent) :
   ITextureReferrer<MAX_STSTM_TEXTURES>(),
   _u_MVP(0),
   _u_MV(0),
+  _u_M(0),
   _u_V(0),
   _u_P(0),
   _u_time(0)
@@ -389,6 +394,7 @@ STSTMSceneNode::~STSTMSceneNode() {
 void STSTMSceneNode::updateUniforms() {
   _u_MVP =_shader->locate("u_MVP");
   _u_MV  =_shader->locate("u_MV");
+  _u_M   =_shader->locate("u_M");
   _u_V   =_shader->locate("u_V");
   _u_P   =_shader->locate("u_P");
   _u_time=_shader->locate("u_time");
@@ -400,29 +406,35 @@ void STSTMSceneNode::render(SceneContext ctx) {
   if (!_mesh) return;
   
   M=absTransform();
+  ctx.M=M;
   ctx.MV*=M;
   ctx.MVP*=M;
   if (_shader) {
     _shader->bind();
     for(i=0;i<MAX_STSTM_TEXTURES;i++)
       if (_texture_locs[i]) 
-        glUniform1i(_texture_locs[i],i);
+        glUniform1i(_texture_locs[i],_textures[i]->bind());
     applyUniforms(ctx);
   }
   for(i=0;i<MAX_STSTM_TEXTURES;i++)
-    if (_textures[i]) _textures[i]->bind(i);
+    if (_textures[i]) _textures[i]->bind();
   
   _mesh->bind();
   _mesh->send();
   _mesh->unbind();
   
-  for(i=0;i<MAX_STSTM_TEXTURES;i++)
-    if (_textures[i]) _textures[i]->unbind();
+  Texture::Unbind();
   
   
   if (_shader) {
     _shader->unbind();
   }
+}
+void STSTMSceneNode::sendGeometry() {
+  if (!_mesh) return;
+  _mesh->bind();
+  _mesh->send();
+  _mesh->unbind();
 }
 
 Matrixf STSTMSceneNode::transform() {
@@ -432,6 +444,7 @@ Matrixf STSTMSceneNode::transform() {
 void STSTMSceneNode::applyUniforms(SceneContext ctx) {
   if (_u_P   ) glUniformMatrix4fv(_u_P  ,1,0,&ctx.P.a11);
   if (_u_V   ) glUniformMatrix4fv(_u_V  ,1,0,&ctx.V.a11);
+  if (_u_M   ) glUniformMatrix4fv(_u_M  ,1,0,&ctx.M.a11);
   if (_u_MV  ) glUniformMatrix4fv(_u_MV ,1,0,&ctx.MV.a11);
   if (_u_MVP ) glUniformMatrix4fv(_u_MVP,1,0,&ctx.MVP.a11);
   if (_u_time) glUniform1f(_u_time,ctx.time);
@@ -457,6 +470,7 @@ void STMMSceneNode::render(SceneContext ctx) {
   
   
   M=absTransform();
+  ctx.M=M;
   ctx.MV*=M;
   ctx.MVP*=M;
   
@@ -476,6 +490,12 @@ void STMMSceneNode::render(SceneContext ctx) {
     _mesh->render(ctx);
   }
   
+}
+void STMMSceneNode::sendGeometry() {
+  if (!_mesh) return;
+  _mesh->bind();
+  _mesh->send();
+  _mesh->unbind();
 }
 
 Matrixf STMMSceneNode::transform() {

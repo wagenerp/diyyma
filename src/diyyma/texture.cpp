@@ -202,32 +202,60 @@ void Texture::initCubemap(unsigned int resolution, int hdr) {
 
 void Texture::bind(int slot) {
   if ((slot<0)||(slot>=TEXTURE_SLOTS)) return;
-  if (__boundTextures[slot]==_name) return;
-  __boundTextures[slot]=_name;
+  if (__boundTextures[slot]==this) return;
+  if (__boundTextures[slot]) {
+    __boundTextures[slot]->_slot=-1;
+    __boundTextures[slot]->drop();
+  }
+  __boundTextures[slot]=this;
+  grab();
+  _slot=slot;
+  
   glEnable(GL_TEXTURE0+slot);
   glActiveTexture(GL_TEXTURE0+slot);
   glEnable(_target);
   glBindTexture(_target,_name);
-  _slot=slot;
+}
+
+int Texture::bind() {
+  int slot;
+  if (_slot>-1) return _slot;
+  for(slot=0;slot<TEXTURE_SLOTS;slot++) if (!__boundTextures[slot]) {
+    __boundTextures[slot]=this;
+    grab();
+    _slot=slot;
+    
+    glEnable(GL_TEXTURE0+slot);
+    glActiveTexture(GL_TEXTURE0+slot);
+    glEnable(_target);
+    glBindTexture(_target,_name);
+    return slot;
+  }
+  return -1;
 }
 
 void Texture::unbind() {
   if ((_slot<0)||(_slot>=TEXTURE_SLOTS)) return;
-  if (__boundTextures[_slot]==_name) {
+  if (__boundTextures[_slot]==this) {
     __boundTextures[_slot]=0;
     glActiveTexture(GL_TEXTURE0+_slot);
     glBindTexture(_target,0);
+    _slot=-1;
+    drop();
+  } else {
+    _slot=-1;
   }
-  _slot=-1;
 }
 
-GLuint Texture::__boundTextures[8]={0,0,0,0,0,0,0,0};
+Texture *Texture::__boundTextures[8]={0,0,0,0,0,0,0,0};
 
 void Texture::Unbind() {
   int i;
   for(i=0;i<TEXTURE_SLOTS;i++) if (__boundTextures[i]) {
     glActiveTexture(GL_TEXTURE0+i);
     glBindTexture(GL_TEXTURE_2D,0);
+    __boundTextures[i]->_slot=-1;
+    __boundTextures[i]->drop();
     __boundTextures[i]=0;
   }
 }
@@ -236,6 +264,8 @@ void Texture::Unbind(int slot) {
   if (__boundTextures[slot]) {
     glActiveTexture(GL_TEXTURE0+slot);
     glBindTexture(GL_TEXTURE_2D,0);
+    __boundTextures[slot]->_slot=-1;
+    __boundTextures[slot]->drop();
     __boundTextures[slot]=0;
   }
   

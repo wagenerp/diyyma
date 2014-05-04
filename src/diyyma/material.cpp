@@ -25,6 +25,7 @@ Material::Material() :
 Material::Material() :
   _u_MVP(0),
   _u_MV(0),
+  _u_M(0),
   _u_V(0),
   _u_P(0),
   _u_time(0),
@@ -48,6 +49,7 @@ Material::~Material() { }
 void Material::updateUniforms() {
   _u_MVP =_shader->locate("u_MVP");
   _u_MV  =_shader->locate("u_MV");
+  _u_M   =_shader->locate("u_M");
   _u_V   =_shader->locate("u_V");
   _u_P   =_shader->locate("u_P");
   _u_time=_shader->locate("u_time");
@@ -57,6 +59,7 @@ void Material::updateUniforms() {
 void Material::applyUniforms(SceneContext ctx) {
   if (_u_P   ) glUniformMatrix4fv(_u_P  ,1,0,&ctx.P.a11);
   if (_u_V   ) glUniformMatrix4fv(_u_V  ,1,0,&ctx.V.a11);
+  if (_u_M   ) glUniformMatrix4fv(_u_M  ,1,0,&ctx.M.a11);
   if (_u_MV  ) glUniformMatrix4fv(_u_MV ,1,0,&ctx.MV.a11);
   if (_u_MVP ) glUniformMatrix4fv(_u_MVP,1,0,&ctx.MVP.a11);
   if (_u_time) glUniform1f(_u_time,ctx.time);
@@ -69,18 +72,16 @@ void Material::bind(SceneContext ctx) {
     _shader->bind();
     for(i=0;i<MAX_MATERIAL_TEXTURES;i++)
       if (_texture_locs[i]) 
-        glUniform1i(_texture_locs[i],i);
+        glUniform1i(_texture_locs[i],_textures[i]->bind());
     applyUniforms(ctx);
   }
   for(i=0;i<MAX_MATERIAL_TEXTURES;i++)
-    if (_textures[i]) _textures[i]->bind(i);
+    if (_textures[i]) _textures[i]->bind();
 }
 
 void Material::unbind() {
-  int i;
   
-  for(i=0;i<MAX_MATERIAL_TEXTURES;i++)
-    if (_textures[i]) _textures[i]->unbind();
+  Texture::Unbind();
   
   if (_shader) _shader->unbind();
 }
@@ -301,6 +302,8 @@ int MaterialLibrary::load(const char *fn, int flags) {
   scanner->drop();
   free(data);
   if (refmask_v) free(refmask_v);
+  
+  return 1;
 }
 
 

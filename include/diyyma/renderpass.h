@@ -83,6 +83,14 @@
   */
 #define RP_TRANSLUCENT 0x400
 
+/** \brief Causes the renderpass to use no color targets at all.
+  *
+  * This flag takes precedence over RP_SET_DRAW_BUFFERS if both are
+  * specified.
+  *
+  */
+#define RP_NO_COLOR 0x800
+
 
 
 class IRenderPass : public IComponent {
@@ -125,7 +133,8 @@ class IRenderPass : public IComponent {
 
 class SceneNodeRenderPass : 
   public IRenderPass,
-  public ISceneContextReferrer {
+  public ISceneContextReferrer,
+  public IShaderReferrer {
   private:
     ARRAY(IRenderableSceneNode*,_nodes);
     ARRAY(double,_distance);
@@ -133,6 +142,13 @@ class SceneNodeRenderPass :
     ARRAY(GLenum,_drawBuffers);
     GLuint _frameBufferObject;
     int _setFBO;
+    
+    GLuint _u_MVP;
+    GLuint _u_MV;
+    GLuint _u_V;
+    GLuint _u_P;
+    GLuint _u_time;
+    
     
   public:
     SceneNodeRenderPass();
@@ -147,6 +163,9 @@ class SceneNodeRenderPass :
     void sortByDistance();
     
     void operator+=(IRenderableSceneNode *node);
+    
+    virtual void updateUniforms();
+    virtual void applyUniforms(SceneContext ctx);
     
     virtual void render();
     virtual int event(const SDL_Event *ev);

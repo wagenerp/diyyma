@@ -21,6 +21,7 @@
 StaticMesh::StaticMesh(): _filename(0) {
   memset(_buffers,0,sizeof(_buffers));
   _vertexCount=0;
+  ARRAY_INIT(_materials);
 }
 
 StaticMesh::~StaticMesh() {

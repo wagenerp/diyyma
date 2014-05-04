@@ -26,7 +26,9 @@ void IRenderPass::beginPass() {
   if (flags&RP_SET_FBO) 
     glBindFramebuffer(GL_FRAMEBUFFER,_frameBufferObject);
   
-  if ((flags&RP_SET_DRAW_BUFFERS)&&_drawBuffers_n) 
+  if (flags&RP_NO_COLOR)
+    glDrawBuffer(GL_NONE);
+  else if ((flags&RP_SET_DRAW_BUFFERS)&&_drawBuffers_n) 
     glDrawBuffers(_drawBuffers_n,_drawBuffers_v);
   
   if (flags&RP_DEPTH_TEST)
@@ -112,12 +114,28 @@ void SceneNodeRenderPass::sortByDistance() {
   sortByDistance(Vector3f(ctx.MV.a14,ctx.MV.a24,ctx.MV.a34));
 }
 
+void SceneNodeRenderPass::updateUniforms() {
+  _u_MVP =_shader->locate("u_MVP");
+  _u_MV  =_shader->locate("u_MV");
+  _u_V   =_shader->locate("u_V");
+  _u_P   =_shader->locate("u_P");
+  _u_time=_shader->locate("u_time");
+}
+
+void SceneNodeRenderPass::applyUniforms(SceneContext ctx) {
+  if (_u_P   ) glUniformMatrix4fv(_u_P  ,1,0,&ctx.P.a11);
+  if (_u_V   ) glUniformMatrix4fv(_u_V  ,1,0,&ctx.V.a11);
+  if (_u_MV  ) glUniformMatrix4fv(_u_MV ,1,0,&ctx.MV.a11);
+  if (_u_MVP ) glUniformMatrix4fv(_u_MVP,1,0,&ctx.MVP.a11);
+  if (_u_time) glUniform1f(_u_time,ctx.time);
+}
+
 
 void SceneNodeRenderPass::render() {
   size_t idx;
   IRenderableSceneNode **pnode;
   SceneContext ctx;
-  Matrixf m;
+  Matrixf m, MV, MVP;
   
   if (!_contextSource) return;
   
@@ -150,8 +168,23 @@ void SceneNodeRenderPass::render() {
   if (flags&RP_CLEAR)
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
   
-  FOREACH(idx,pnode,_nodes) {
-    (*pnode)->render(ctx);
+  if (_shader) {
+    MV=ctx.MV;
+    MVP=ctx.MVP;
+    _shader->bind();
+    FOREACH(idx,pnode,_nodes) {
+      m=(*pnode)->absTransform();
+      ctx.MV=MV*m;
+      ctx.MVP=MVP*m;
+      applyUniforms(ctx);
+      (*pnode)->sendGeometry();
+    }
+    _shader->unbind();
+  } else {
+    FOREACH(idx,pnode,_nodes) {
+      (*pnode)->render(ctx);
+    }
+  
   }
   
   endPass();

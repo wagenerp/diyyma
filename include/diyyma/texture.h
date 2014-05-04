@@ -146,6 +146,7 @@ const CubemapData CUBEMAP_DATA[6] = {
     "zn"
   }
 };
+class Texture;
 
 class Texture : public IAsset {
   private:
@@ -155,7 +156,7 @@ class Texture : public IAsset {
     int _slot;
     GLenum _target;
     int _loadHDR;
-    static GLuint __boundTextures[TEXTURE_SLOTS];
+    static Texture *__boundTextures[TEXTURE_SLOTS];
   public:
     Texture();
     Texture(const char *fn_in);
@@ -180,6 +181,13 @@ class Texture : public IAsset {
     void initCubemap(unsigned int resolution, int hdr);
     
     void bind(int slot);
+    /** \brief Binds the texture to any slot, if available.
+      *
+      * If the texture is already bound or was sucessfully bound to a new
+      * slot, its index is returned. Otherwise the function returns -1.
+      */
+    int bind();
+    
     void unbind();
     
     static void Unbind();

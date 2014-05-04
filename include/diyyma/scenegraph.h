@@ -54,15 +54,15 @@ class ILightControllerReferrer {
   * This is done so that coordinate transformation does not have to be done
   * in the shader.
   */
-class LightController : 
+class SimpleLightController : 
   public ILightController,
   public ISceneContextReferrer {
   
   private:
     ARRAY(LightSceneNode*, _nodes);
   public:
-    LightController();
-    ~LightController();
+    SimpleLightController();
+    ~SimpleLightController();
     
     /** \brief Transmits all the lighting information handled by us
       * to a shader by setting a bunch of uniforms.
@@ -101,6 +101,7 @@ class ISceneNode : public virtual RCObject {
     
 };
 
+
 /** \brief Abstract class for renderable scene nodes.
   *
   * Besides the ISceneNode methods, this one also has to implement a 
@@ -117,6 +118,10 @@ class IRenderableSceneNode : public ISceneNode {
       * such as the view and projection matrices.
       */
     virtual void render(SceneContext ctx) =0;
+    
+    /** \brief Just sends the geometry without applying any transformation
+      * or setting any parameters.*/
+    virtual void sendGeometry() =0;
 };
 
 
@@ -239,6 +244,7 @@ class CubicBezierSceneNode :
     #ifdef DEBUG_DIYYMA_SPLINES
     
     virtual void render(SceneContext ctx);
+    virtual void sendGeometry();
     
     #endif
     
@@ -285,6 +291,7 @@ class STSTMSceneNode :
     
     GLuint _u_MVP;
     GLuint _u_MV;
+    GLuint _u_M;
     GLuint _u_V;
     GLuint _u_P;
     GLuint _u_time;
@@ -298,6 +305,7 @@ class STSTMSceneNode :
     virtual void updateUniforms();
     
     virtual void render(SceneContext ctx);
+    virtual void sendGeometry();
     
     virtual Matrixf transform();
     
@@ -323,6 +331,7 @@ class STMMSceneNode :
     Matrixf staticTransform;
     
     virtual void render(SceneContext ctx);
+    virtual void sendGeometry();
     
     virtual Matrixf transform();
     

@@ -35,6 +35,7 @@ class Material : public RCObject,
     
     GLuint _u_MVP;
     GLuint _u_MV;
+    GLuint _u_M;
     GLuint _u_V;
     GLuint _u_P;
     GLuint _u_time;
