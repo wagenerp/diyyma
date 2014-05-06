@@ -148,6 +148,7 @@ class SceneNodeRenderPass :
     GLuint _u_V;
     GLuint _u_P;
     GLuint _u_time;
+    GLuint _u_camPos_w;
     
     
   public:

@@ -119,6 +119,7 @@ void SceneNodeRenderPass::updateUniforms() {
   _u_MV  =_shader->locate("u_MV");
   _u_V   =_shader->locate("u_V");
   _u_P   =_shader->locate("u_P");
+  _u_camPos_w=_shader->locate("u_camPos_w");
   _u_time=_shader->locate("u_time");
 }
 
@@ -127,6 +128,7 @@ void SceneNodeRenderPass::applyUniforms(SceneContext ctx) {
   if (_u_V   ) glUniformMatrix4fv(_u_V  ,1,0,&ctx.V.a11);
   if (_u_MV  ) glUniformMatrix4fv(_u_MV ,1,0,&ctx.MV.a11);
   if (_u_MVP ) glUniformMatrix4fv(_u_MVP,1,0,&ctx.MVP.a11);
+  if (_u_camPos_w) glUniform3fv(_u_camPos_w,1,&ctx.camPos_w.x);
   if (_u_time) glUniform1f(_u_time,ctx.time);
 }
 
