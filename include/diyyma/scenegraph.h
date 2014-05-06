@@ -30,7 +30,7 @@ class LightSceneNode;
 class ILightController : public virtual RCObject {
   public:
     virtual ~ILightController() { }
-    virtual void activate(Shader *shd)=0;
+    virtual void activate(Shader *shd, SceneContext ctx)=0;
     
 };
 
@@ -67,7 +67,7 @@ class SimpleLightController :
     /** \brief Transmits all the lighting information handled by us
       * to a shader by setting a bunch of uniforms.
       */
-    virtual void activate(Shader *shd);
+    virtual void activate(Shader *shd, SceneContext ctx);
     
     void operator+=(LightSceneNode *node);
     

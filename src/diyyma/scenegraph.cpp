@@ -113,7 +113,7 @@ void SimpleLightController::operator+=(LightSceneNode *node) {
 }
 
 
-void SimpleLightController::activate(Shader *shd) {
+void SimpleLightController::activate(Shader *shd, SceneContext ctx) {
   GLuint loc;
   size_t idx;
   LightSceneNode **pnode;
@@ -361,6 +361,7 @@ SceneContext CameraSceneNode::context() {
   SceneContext ctx;
   ctx.P=P;
   ctx.V=absTransform().inverse();
+  ctx.M.setIdentity();
   ctx.MV=ctx.V;
   ctx.MVP=ctx.P*ctx.V;
   ctx.time=time;
@@ -448,7 +449,7 @@ void STSTMSceneNode::applyUniforms(SceneContext ctx) {
   if (_u_MV  ) glUniformMatrix4fv(_u_MV ,1,0,&ctx.MV.a11);
   if (_u_MVP ) glUniformMatrix4fv(_u_MVP,1,0,&ctx.MVP.a11);
   if (_u_time) glUniform1f(_u_time,ctx.time);
-  if (_lightController) _lightController->activate(_shader);
+  if (_lightController) _lightController->activate(_shader,ctx);
   
 }
 
@@ -481,7 +482,7 @@ void STMMSceneNode::render(SceneContext ctx) {
     for(idx=0;idx<nmat;idx++) {
       mat=_mesh->material(idx).mat;
       mat->bind(ctx);
-      if (mat->shader()) _lightController->activate(mat->shader());
+      if (mat->shader()) _lightController->activate(mat->shader(),ctx);
       _mesh->send(idx);
       mat->unbind();
     }
