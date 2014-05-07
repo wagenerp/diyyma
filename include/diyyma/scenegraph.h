@@ -138,6 +138,20 @@ class STSceneNode : public ISceneNode {
     virtual Matrixf transform();
   
 };
+/** \brief Transformation scene node adopting the transformation of a
+  * scene context source.
+  *
+  */
+class CameraFollowerSceneNode : 
+  public ISceneNode, 
+  public ISceneContextReferrer {
+  public:
+    CameraFollowerSceneNode(ISceneNode *parent);
+    virtual ~CameraFollowerSceneNode();
+    
+    virtual Matrixf transform();
+  
+};
 
 
 /** \brief Lissajous path animation. Transforms children to follow a 

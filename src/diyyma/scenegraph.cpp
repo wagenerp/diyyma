@@ -197,6 +197,23 @@ Matrixf STSceneNode::transform() {
 }
 
 
+CameraFollowerSceneNode::CameraFollowerSceneNode(ISceneNode *parent) :
+  ISceneNode(parent)
+  {
+}
+CameraFollowerSceneNode::~ CameraFollowerSceneNode () {
+}
+
+Matrixf CameraFollowerSceneNode::transform() {
+  Matrixf M;
+  
+  if (_contextSource) M=_contextSource->context().V.inverse();
+  else M.setIdentity();
+  
+  return M;
+}
+
+
 
 LissajousSceneNode::LissajousSceneNode(ISceneNode *parent) :
   ISceneNode(parent)
