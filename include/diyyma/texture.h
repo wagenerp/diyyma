@@ -239,12 +239,13 @@ template<int N> class ITextureReferrer {
       if (_shaderReferrer) shd=_shaderReferrer->shader();
       for(i=0;i<N;i++)
         if (!_textures[i]) {
+          printf("add texture at %i: %s\n",i,loc);
           t->grab();
           _textures[i]=t;
           if (shd)
             _texture_locs[i]=shd->locate(loc);
           else 
-            _texture_locs[i]=0;
+            _texture_locs[i]=-1;
           break;
         }
       

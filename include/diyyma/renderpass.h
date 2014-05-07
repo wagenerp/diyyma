@@ -91,6 +91,12 @@
   */
 #define RP_NO_COLOR 0x800
 
+/** \brief Causes the renderpass not to write to the depth buffer.
+  *
+  *
+  */
+#define RP_NO_DEPTH 0x1000
+
 
 
 class IRenderPass : public IComponent {

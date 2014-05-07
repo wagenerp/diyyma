@@ -31,6 +31,11 @@ void IRenderPass::beginPass() {
   else if ((flags&RP_SET_DRAW_BUFFERS)&&_drawBuffers_n) 
     glDrawBuffers(_drawBuffers_n,_drawBuffers_v);
   
+  if (flags&RP_CLEAR)
+    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+  
+  if (flags&RP_NO_DEPTH) 
+    glDepthMask(GL_FALSE);
   if (flags&RP_DEPTH_TEST)
     glEnable(GL_DEPTH_TEST);
   if (flags&RP_CULL_FACE) {
@@ -53,6 +58,8 @@ void IRenderPass::endPass() {
     glDisable(GL_DEPTH_TEST);
   if (flags&RP_CULL_FACE)
     glDisable(GL_CULL_FACE);
+  if (flags&RP_NO_DEPTH) 
+    glDepthMask(GL_TRUE);
   
   if (flags&RP_TRANSLUCENT) {
     glDisable(GL_BLEND); 
@@ -174,8 +181,6 @@ void SceneNodeRenderPass::render() {
     sortByDistance(Vector3f(ctx.MV.a14,ctx.MV.a24,ctx.MV.a34));
   beginPass();
   
-  if (flags&RP_CLEAR)
-    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
   
   if (_shader) {
     MV=ctx.MV;
@@ -218,6 +223,8 @@ ScreenQuadRenderPass::ScreenQuadRenderPass():
   ITextureReferrer<MAX_SCREENQUAD_TEXTURES>(),
   _u_time(-1) {
   
+  _shaderReferrer=this;
+  
   glGenBuffers(1,&_b_vertices);
   
   glBindBuffer(GL_ARRAY_BUFFER,_b_vertices);
@@ -247,14 +254,16 @@ void ScreenQuadRenderPass::render() {
   beginPass();
   if (_shader) {
     _shader->bind();
-    for(i=0;i<MAX_STSTM_TEXTURES;i++)
-      if (_textures[i] && (_texture_locs[i]!=-1)) 
-        glUniform1i(_texture_locs[i],i);
+    for(i=0;i<MAX_SCREENQUAD_TEXTURES;i++)
+      if (_textures[i] && (_texture_locs[i]!=-1)) {
+        fflush(stdout);
+        glUniform1i(_texture_locs[i],_textures[i]->bind());
+      }
     applyUniforms(ctx);
   }
   
-  for(i=0;i<MAX_STSTM_TEXTURES;i++)
-    if (_textures[i]) _textures[i]->bind(i);
+  for(i=0;i<MAX_SCREENQUAD_TEXTURES;i++)
+    if (_textures[i]) _textures[i]->bind();
   
   glBindBuffer(GL_ARRAY_BUFFER,_b_vertices);
   glVertexAttribPointer(BUFIDX_VERTICES,3,GL_FLOAT,0,0,0);
@@ -263,8 +272,7 @@ void ScreenQuadRenderPass::render() {
   glDrawArrays(GL_TRIANGLES,0,sizeof(SCREEN_QUAD_VERTICES)/sizeof(float));
   glDisableVertexAttribArray(BUFIDX_VERTICES);
   
-  for(i=0;i<MAX_STSTM_TEXTURES;i++)
-    if (_textures[i]) _textures[i]->unbind();
+  Texture::Unbind();
   
   if (_shader) _shader->unbind();
   
