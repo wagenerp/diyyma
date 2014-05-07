@@ -143,11 +143,12 @@ class SceneNodeRenderPass :
     GLuint _frameBufferObject;
     int _setFBO;
     
-    GLuint _u_MVP;
-    GLuint _u_MV;
-    GLuint _u_V;
-    GLuint _u_P;
-    GLuint _u_time;
+    GLint _u_MVP;
+    GLint _u_MV;
+    GLint _u_V;
+    GLint _u_P;
+    GLint _u_time;
+    GLint _u_camPos_w;
     
     
   public:
@@ -183,7 +184,7 @@ class ScreenQuadRenderPass :
   
   private:
     GLuint _b_vertices;
-    GLuint _u_time;
+    GLint _u_time;
   
   public:
     ScreenQuadRenderPass();
@@ -201,7 +202,7 @@ class ScreenQuadRenderPass :
 
 class SkyBoxRenderPass : public ScreenQuadRenderPass {
   private:
-    GLuint _u_VPInv;
+    GLint _u_VPInv;
     
   public:
     SkyBoxRenderPass();

@@ -61,7 +61,14 @@ void IRenderPass::endPass() {
   }
 }
 
-SceneNodeRenderPass::SceneNodeRenderPass() {
+SceneNodeRenderPass::SceneNodeRenderPass() :
+  _u_MVP(-1),
+  _u_MV(-1),
+  _u_V(-1),
+  _u_P(-1),
+  _u_time(-1),
+  _u_camPos_w(-1)
+  {
   transformLeft.setIdentity();
   transformRight.setIdentity();
   ARRAY_INIT(_nodes);
@@ -119,15 +126,17 @@ void SceneNodeRenderPass::updateUniforms() {
   _u_MV  =_shader->locate("u_MV");
   _u_V   =_shader->locate("u_V");
   _u_P   =_shader->locate("u_P");
+  _u_camPos_w=_shader->locate("u_camPos_w");
   _u_time=_shader->locate("u_time");
 }
 
 void SceneNodeRenderPass::applyUniforms(SceneContext ctx) {
-  if (_u_P   ) glUniformMatrix4fv(_u_P  ,1,0,&ctx.P.a11);
-  if (_u_V   ) glUniformMatrix4fv(_u_V  ,1,0,&ctx.V.a11);
-  if (_u_MV  ) glUniformMatrix4fv(_u_MV ,1,0,&ctx.MV.a11);
-  if (_u_MVP ) glUniformMatrix4fv(_u_MVP,1,0,&ctx.MVP.a11);
-  if (_u_time) glUniform1f(_u_time,ctx.time);
+  if (-1!=_u_P   ) glUniformMatrix4fv(_u_P  ,1,0,&ctx.P.a11);
+  if (-1!=_u_V   ) glUniformMatrix4fv(_u_V  ,1,0,&ctx.V.a11);
+  if (-1!=_u_MV  ) glUniformMatrix4fv(_u_MV ,1,0,&ctx.MV.a11);
+  if (-1!=_u_MVP ) glUniformMatrix4fv(_u_MVP,1,0,&ctx.MVP.a11);
+  if (-1!=_u_camPos_w) glUniform3fv(_u_camPos_w,1,&ctx.camPos_w.x);
+  if (-1!=_u_time) glUniform1f(_u_time,ctx.time);
 }
 
 
@@ -206,7 +215,8 @@ const float SCREEN_QUAD_VERTICES[18]={
 
 ScreenQuadRenderPass::ScreenQuadRenderPass(): 
   IShaderReferrer(),
-  ITextureReferrer<MAX_SCREENQUAD_TEXTURES>() {
+  ITextureReferrer<MAX_SCREENQUAD_TEXTURES>(),
+  _u_time(-1) {
   
   glGenBuffers(1,&_b_vertices);
   
@@ -238,7 +248,7 @@ void ScreenQuadRenderPass::render() {
   if (_shader) {
     _shader->bind();
     for(i=0;i<MAX_STSTM_TEXTURES;i++)
-      if (_texture_locs[i]) 
+      if (_textures[i] && (_texture_locs[i]!=-1)) 
         glUniform1i(_texture_locs[i],i);
     applyUniforms(ctx);
   }
@@ -273,7 +283,7 @@ void ScreenQuadRenderPass::applyUniforms(SceneContext ctx) {
   if (_u_time) glUniform1f(_u_time,ctx.time);
 }
 
-SkyBoxRenderPass::SkyBoxRenderPass() : _u_VPInv(0) {
+SkyBoxRenderPass::SkyBoxRenderPass() : _u_VPInv(-1) {
 
 }
 
@@ -290,7 +300,7 @@ void SkyBoxRenderPass::updateUniforms() {
 void SkyBoxRenderPass::applyUniforms(SceneContext ctx) {
   Matrixf VPInv;
   ScreenQuadRenderPass::applyUniforms(ctx);
-  if (_u_VPInv) {
+  if (-1!=_u_VPInv) {
     VPInv=ctx.V;
     VPInv.a14=VPInv.a24=VPInv.a34=0;
     VPInv=ctx.P*VPInv;

@@ -260,6 +260,7 @@ class CameraSceneNode :
   
   public:
     Matrixf P;
+    Vector3f pos_w;
     double time;
   
   public:
@@ -295,6 +296,7 @@ class STSTMSceneNode :
     GLint _u_V;
     GLint _u_P;
     GLint _u_time;
+    GLint _u_camPos_w;
   
   public:
     STSTMSceneNode(ISceneNode *parent);

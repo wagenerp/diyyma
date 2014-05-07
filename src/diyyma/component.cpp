@@ -156,6 +156,7 @@ SceneContext FPSCameraComponent::context() {
   ctx.MV=V;
   ctx.MVP=VP;
   ctx.time=_time;
+  ctx.camPos_w=pos;
   return ctx;
 }
 

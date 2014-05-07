@@ -353,6 +353,7 @@ CameraSceneNode::CameraSceneNode(ISceneNode *parent) :
   {
   P.setPerspective(80,1.0/0.75,0.1,1000);
   time=0;
+  pos_w = Vector3f(0,0,0);
 }
 
 CameraSceneNode::~CameraSceneNode() { }
@@ -365,6 +366,7 @@ SceneContext CameraSceneNode::context() {
   ctx.MV=ctx.V;
   ctx.MVP=ctx.P*ctx.V;
   ctx.time=time;
+  ctx.camPos_w = pos_w;
   return ctx;
 }
 
@@ -381,7 +383,8 @@ STSTMSceneNode::STSTMSceneNode(ISceneNode *parent) :
   _u_M(-1),
   _u_V(-1),
   _u_P(-1),
-  _u_time(-1)
+  _u_time(-1),
+  _u_camPos_w(-1)
   {
   staticTransform.setIdentity();
   _shaderReferrer=this;
@@ -399,6 +402,7 @@ void STSTMSceneNode::updateUniforms() {
   _u_V   =_shader->locate("u_V");
   _u_P   =_shader->locate("u_P");
   _u_time=_shader->locate("u_time");
+  _u_camPos_w=_shader->locate("u_camPos_w");
 }
 
 void STSTMSceneNode::render(SceneContext ctx) {
@@ -449,10 +453,10 @@ void STSTMSceneNode::applyUniforms(SceneContext ctx) {
   if (-1!=_u_MV  ) glUniformMatrix4fv(_u_MV ,1,0,&ctx.MV.a11);
   if (-1!=_u_MVP ) glUniformMatrix4fv(_u_MVP,1,0,&ctx.MVP.a11);
   if (-1!=_u_time) glUniform1f(_u_time,ctx.time);
+  if (-1!=_u_camPos_w) glUniform3fv(_u_camPos_w,1,&ctx.camPos_w.x);
   if (_lightController) _lightController->activate(_shader,ctx);
   
 }
-
 
 STMMSceneNode::STMMSceneNode(ISceneNode *parent) : 
   IRenderableSceneNode(parent),
@@ -468,7 +472,6 @@ void STMMSceneNode::render(SceneContext ctx) {
   size_t idx, nmat;
   Material *mat;
   Matrixf M;
-  
   
   M=absTransform();
   ctx.M=M;

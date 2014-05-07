@@ -24,7 +24,8 @@ struct SceneContext {
   Matrixf M;   ///<\brief The current model matrix.
   Matrixf V;   ///<\brief The current view matrix.
   Matrixf P;   ///<\brief The current projection matrix.
-  
+  Vector3f camPos_w; ///<\brief The current camera position in world coordinates.
+
   double time; ///<\brief The current frame time.
   
   void setIdentity() {
@@ -33,6 +34,7 @@ struct SceneContext {
     M.setIdentity();
     MV.setIdentity();
     MVP.setIdentity();
+    camPos_w.set(0,0,0);
     time=0;
   }
   
