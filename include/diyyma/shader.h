@@ -78,7 +78,7 @@ class Shader : public IAsset {
     GLuint program();
     /** \brief Calls glGetUniformLocation for this shader and the specified
       * identifier.*/
-    GLuint locate(const char *id);
+    GLint locate(const char *id);
     
     /** \brief Attaches shader code to this program if the specified
       * mode was not already attached.

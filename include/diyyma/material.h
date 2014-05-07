@@ -33,12 +33,12 @@ class Material : public RCObject,
   {
   private:
     
-    GLuint _u_MVP;
-    GLuint _u_MV;
-    GLuint _u_M;
-    GLuint _u_V;
-    GLuint _u_P;
-    GLuint _u_time;
+    GLint _u_MVP;
+    GLint _u_MV;
+    GLint _u_M;
+    GLint _u_V;
+    GLint _u_P;
+    GLint _u_time;
   public:
     /** \brief Ambient reflection coefficient. */
     Vector3f ambient;

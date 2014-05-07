@@ -202,7 +202,7 @@ class Texture : public IAsset {
 template<int N> class ITextureReferrer {
   protected:
     Texture    *_textures[N];
-    GLuint      _texture_locs[N];
+    GLint       _texture_locs[N];
     
     IShaderReferrer *_shaderReferrer;
     
@@ -210,8 +210,11 @@ template<int N> class ITextureReferrer {
     ITextureReferrer():
       _shaderReferrer(0)
       {
-      memset(_textures,0,sizeof(_textures));
-      memset(_texture_locs,0,sizeof(_texture_locs));
+      int i;
+      for(i=0;i<N;i++) {
+        _textures[i]=0;
+        _texture_locs[i]=-1;
+      }
     }
     ~ITextureReferrer() {
       int i;

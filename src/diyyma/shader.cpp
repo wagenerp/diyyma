@@ -73,7 +73,7 @@ GLuint Shader::program() {
   return _program;
 }
 
-GLuint Shader::locate(const char *id) {
+GLint Shader::locate(const char *id) {
   return glGetUniformLocation(_program,id);
 }
 

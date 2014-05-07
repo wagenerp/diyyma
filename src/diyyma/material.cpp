@@ -4,11 +4,11 @@
 
 #ifdef _MSC_VER
 Material::Material() :
-  _u_MVP(0),
-  _u_MV(0),
-  _u_V(0),
-  _u_P(0),
-  _u_time(0),
+  _u_MVP(-1),
+  _u_MV(-1),
+  _u_V(-1),
+  _u_P(-1),
+  _u_time(-1),
   alpha(1),
   shininess(40),
   refractionIndex(1),
@@ -23,12 +23,12 @@ Material::Material() :
 }
 #else
 Material::Material() :
-  _u_MVP(0),
-  _u_MV(0),
-  _u_M(0),
-  _u_V(0),
-  _u_P(0),
-  _u_time(0),
+  _u_MVP(-1),
+  _u_MV(-1),
+  _u_M(-1),
+  _u_V(-1),
+  _u_P(-1),
+  _u_time(-1),
   ambient{1,1,1},
   diffuse{1,1,1},
   specular{1,1,1},
@@ -57,12 +57,13 @@ void Material::updateUniforms() {
 }
 
 void Material::applyUniforms(SceneContext ctx) {
-  if (_u_P   ) glUniformMatrix4fv(_u_P  ,1,0,&ctx.P.a11);
-  if (_u_V   ) glUniformMatrix4fv(_u_V  ,1,0,&ctx.V.a11);
-  if (_u_M   ) glUniformMatrix4fv(_u_M  ,1,0,&ctx.M.a11);
-  if (_u_MV  ) glUniformMatrix4fv(_u_MV ,1,0,&ctx.MV.a11);
-  if (_u_MVP ) glUniformMatrix4fv(_u_MVP,1,0,&ctx.MVP.a11);
-  if (_u_time) glUniform1f(_u_time,ctx.time);
+  if (-1!=_u_P   ) glUniformMatrix4fv(_u_P  ,1,0,&ctx.P.a11);
+  if (-1!=_u_V   ) glUniformMatrix4fv(_u_V  ,1,0,&ctx.V.a11);
+  if (-1!=_u_M   ) glUniformMatrix4fv(_u_M  ,1,0,&ctx.M.a11);
+  if (-1!=_u_MV  ) glUniformMatrix4fv(_u_MV ,1,0,&ctx.MV.a11);
+  if (-1!=_u_MVP ) glUniformMatrix4fv(_u_MVP,1,0,&ctx.MVP.a11);
+  if (-1!=_u_time) glUniform1f(_u_time,ctx.time);
+  
   // todo: transmit material parameters (perhaps use UBOs)
 }
 
@@ -71,7 +72,7 @@ void Material::bind(SceneContext ctx) {
   if (_shader) {
     _shader->bind();
     for(i=0;i<MAX_MATERIAL_TEXTURES;i++)
-      if (_texture_locs[i]) 
+      if (_textures[i] && (_texture_locs[i]!=-1))
         glUniform1i(_texture_locs[i],_textures[i]->bind());
     applyUniforms(ctx);
   }
