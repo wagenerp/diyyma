@@ -5,6 +5,8 @@
 IRenderPass::IRenderPass(): 
   _frameBufferObject(0),
   flags(0),
+  blend_src(GL_SRC_ALPHA),
+  blend_trg(GL_ONE_MINUS_SRC_ALPHA),
   _viewport{0,0,0,0} {
   ARRAY_INIT(_drawBuffers);
 }
@@ -34,7 +36,7 @@ void IRenderPass::setViewport(GLint x, GLint y, GLint w, GLint h) {
 void IRenderPass::beginPass() {
   if (flags&RP_SET_FBO) 
     glBindFramebuffer(GL_FRAMEBUFFER,_frameBufferObject);
-  
+    
   if (flags&RP_SET_VIEWPORT)
     glViewport(_viewport[0],_viewport[1],_viewport[2],_viewport[3]);
   
@@ -43,11 +45,8 @@ void IRenderPass::beginPass() {
   else if ((flags&RP_SET_DRAW_BUFFERS)&&_drawBuffers_n) 
     glDrawBuffers(_drawBuffers_n,_drawBuffers_v);
   
-  if (flags&RP_CLEAR)
-    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-  
   if (flags&RP_NO_DEPTH) 
-    glDepthMask(GL_FALSE);
+    glDepthMask(0);
   if (flags&RP_DEPTH_TEST)
     glEnable(GL_DEPTH_TEST);
   if (flags&RP_CULL_FACE) {
@@ -57,12 +56,16 @@ void IRenderPass::beginPass() {
   if (flags&RP_TRANSLUCENT) {
     
     glEnable(GL_BLEND); 
-    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-    //glDepthMask(GL_FALSE);
-    
-    glEnable(GL_ALPHA_TEST);
-    glAlphaFunc(1,GL_NEVER);
+    glBlendFunc(blend_src,blend_trg);
   }
+  if (flags&RP_CLEAR_DEPTH) {
+    glClear(GL_DEPTH_BUFFER_BIT);
+  }
+  if (flags&RP_CLEAR_COLOR) {
+    glClearColor(0,0,0,0);
+    glClear(GL_COLOR_BUFFER_BIT);
+  }
+    //glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 }
 
 void IRenderPass::endPass() {
@@ -75,8 +78,6 @@ void IRenderPass::endPass() {
   
   if (flags&RP_TRANSLUCENT) {
     glDisable(GL_BLEND); 
-    glDepthMask(GL_TRUE);
-    glDisable(GL_ALPHA_TEST);
   }
 }
 

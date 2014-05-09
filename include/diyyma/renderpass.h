@@ -56,10 +56,10 @@
 #define RP_SORT_NODES 0x40
 
 
-/** \brief Clears both depth and color component prior to running the actual
+/** \brief Clears the depth component prior to running the actual
   * render pass.
   */
-#define RP_CLEAR 0x80
+#define RP_CLEAR_DEPTH 0x80
 
 
 /** \brief Causes the left-transformation matrix of a renderpass to be used.
@@ -102,6 +102,13 @@
   */
 #define RP_SET_VIEWPORT 0x2000
 
+/** \brief Clears the color component prior to running the actual
+  * render pass.
+  */
+#define RP_CLEAR_COLOR 0x4000
+
+#define RP_CLEAR (RP_CLEAR_COLOR|RP_CLEAR_DEPTH)
+
 
 
 class IRenderPass : public IComponent {
@@ -118,6 +125,8 @@ class IRenderPass : public IComponent {
     /** \brief Any compbination of RP_* flags 
       */
     int flags;
+    
+    GLenum blend_src, blend_trg;
     
     /** \brief Assigns a frame buffer object to be activated on rendering.
       *

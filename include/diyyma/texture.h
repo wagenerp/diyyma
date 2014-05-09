@@ -160,6 +160,7 @@ class Texture : public IAsset {
   public:
     Texture();
     Texture(const char *fn_in);
+    Texture(GLenum target);
     ~Texture();
     
     GLuint name();

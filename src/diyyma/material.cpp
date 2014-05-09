@@ -41,6 +41,7 @@ Material::Material() :
   ITextureReferrer<MAX_MATERIAL_TEXTURES>() {
   
   _shaderReferrer=this;
+  
 }
 #endif
 

@@ -501,6 +501,7 @@ void STMMSceneNode::render(SceneContext ctx) {
     nmat=_mesh->materialCount();
     for(idx=0;idx<nmat;idx++) {
       mat=_mesh->material(idx).mat;
+      if (!mat->shader()) continue;
       mat->bind(ctx);
       if (mat->shader()) _lightController->activate(mat->shader(),ctx);
       _mesh->send(idx);

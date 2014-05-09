@@ -140,7 +140,13 @@ void StaticMesh::loadOBJ(char *code) {
       if ((face[5]<0)||(face[5]>=normals_n  )) face[5]=-1;
       if ((imat<0) || (smat.ptr)) {
         if (smat.ptr&&mtlib) {
-          mat.mat=mtlib->get(smat,1);
+          mat.mat=mtlib->get(smat,0);
+          if (!mat.mat) {
+            LOG_WARNING(
+              "WARNING: Material '%.*s' not found\n",
+              smat.length,smat.ptr);
+            mat.mat=new Material();
+          }
         } else {
           mat.mat=new Material();
         }
@@ -494,12 +500,14 @@ void StaticMesh::render(SceneContext ctx) {
   
   bind();
   FOREACH(idx,pmat,_materials) {
-    pmat->mat->bind(ctx);
-    glDrawArrays(
-      GL_TRIANGLES,
-      pmat->vertexOffset,
-      pmat->vertexCount);
-    pmat->mat->unbind();
+    if (pmat->mat->shader()) {
+      pmat->mat->bind(ctx);
+      glDrawArrays(
+        GL_TRIANGLES,
+        pmat->vertexOffset,
+        pmat->vertexCount);
+      pmat->mat->unbind();
+    }
   }
   
   unbind();

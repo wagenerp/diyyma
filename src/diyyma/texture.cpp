@@ -80,10 +80,23 @@ Texture::Texture():
   _filename_cube[3] = 0; _filename_cube[4] = 0; _filename_cube[5] = 0; 
   glGenTextures(1,&_name);
 }
+Texture::Texture(GLenum target): 
+  _filename(0), _slot(-1),
+  _target(target), _loadHDR(0) {
+  _filename_cube[0] = 0; _filename_cube[1] = 0; _filename_cube[2] = 0;
+  _filename_cube[3] = 0; _filename_cube[4] = 0; _filename_cube[5] = 0; 
+  glGenTextures(1,&_name);
+}
 #else
 Texture::Texture(): 
   _filename(0), _filename_cube{0,0,0,0,0,0},
    _slot(-1), _target(GL_TEXTURE_2D),
+  _loadHDR(0) {
+  glGenTextures(1,&_name);
+}
+Texture::Texture(GLenum target): 
+  _filename(0), _filename_cube{0,0,0,0,0,0},
+   _slot(-1), _target(target),
   _loadHDR(0) {
   glGenTextures(1,&_name);
 }
@@ -253,7 +266,7 @@ void Texture::Unbind() {
   int i;
   for(i=0;i<TEXTURE_SLOTS;i++) if (__boundTextures[i]) {
     glActiveTexture(GL_TEXTURE0+i);
-    glBindTexture(GL_TEXTURE_2D,0);
+    glBindTexture(__boundTextures[i]->_target,0);
     __boundTextures[i]->_slot=-1;
     __boundTextures[i]->drop();
     __boundTextures[i]=0;
@@ -263,7 +276,7 @@ void Texture::Unbind(int slot) {
   if ((slot<0)||(slot>=TEXTURE_SLOTS)) return;
   if (__boundTextures[slot]) {
     glActiveTexture(GL_TEXTURE0+slot);
-    glBindTexture(GL_TEXTURE_2D,0);
+    glBindTexture(__boundTextures[slot]->_target,0);
     __boundTextures[slot]->_slot=-1;
     __boundTextures[slot]->drop();
     __boundTextures[slot]=0;
