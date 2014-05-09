@@ -97,6 +97,11 @@
   */
 #define RP_NO_DEPTH 0x1000
 
+/** \brief Causes the renderpass not activate its own viewport.
+  *
+  */
+#define RP_SET_VIEWPORT 0x2000
+
 
 
 class IRenderPass : public IComponent {
@@ -104,6 +109,7 @@ class IRenderPass : public IComponent {
     
     ARRAY(GLenum,_drawBuffers);
     GLuint _frameBufferObject;
+    GLint _viewport[4];
   
   public:
     IRenderPass();
@@ -132,6 +138,12 @@ class IRenderPass : public IComponent {
       * Calling this method also sets the RP_SET_DRAW_BUFFERS flag.
       */
     void assignDrawBuffer(GLenum buf);
+    
+    /** \brief Assigns a custom viewport to the render pass.
+      *
+      * Calling this method also sets the RP_SET_VIEWPORT flag.
+      */
+    void setViewport(GLint x, GLint y, GLint w, GLint h);
     
     virtual void beginPass();
     virtual void endPass();

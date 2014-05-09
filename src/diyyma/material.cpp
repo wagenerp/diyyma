@@ -271,9 +271,6 @@ int MaterialLibrary::load(const char *fn, int flags) {
       mat->addTexture(tex->get(str1),str_tmp);
       free((void*)str_tmp);
       
-      printf(
-        "added custom texture %.*s at %.*s.\n",
-        str1.length,str1.ptr,str.length,str.ptr);
     } else if (str=="#shader") {
       // todo: investigate if specifying new commands causes problems with
       // common loaders and if so, make it a line comment.

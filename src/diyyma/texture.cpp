@@ -308,6 +308,9 @@ int Texture::load(const char *fn, int flags) {
     if (_filename) {
       loadTextureFile(_filename,_name,_target,_target,
       _loadHDR);
+    } else {
+      LOG_WARNING(
+        "WARNING: unable to locate texture file '%s'\n",fn);
     }
   }
   return 1;

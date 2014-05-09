@@ -532,7 +532,7 @@ template<class T> struct Vector4 {
       set(x*f,y*f,z*f,w*f);
     }
     Vector4<T> operator/(T f) const {
-      set(x/f,y/f,z/f,w/f);
+      return Vector4<T>(x/f,y/f,z/f,w/f);
     }
     void operator/=(T f) {
       set(x/f,y/f,z/f,w/f);
@@ -907,7 +907,7 @@ template<class T> struct Vector2 {
       set(x*f,y*f);
     }
     Vector2<T> operator/(T f) const {
-      set(x/f,y/f);
+      return Vector2<T>(x/f,y/f);
     }
     void operator/=(T f) {
       set(x/f,y/f);

@@ -77,8 +77,9 @@ GLint Shader::locate(const char *id) {
   return glGetUniformLocation(_program,id);
 }
 
-void handleShaderIncludes(
-  char *subject, size_t cc, 
+
+int handleShaderIncludes(
+  int subject_idx, 
   void ***code_v, size_t **code_cb_v, char ***files_v, size_t *code_n,
   int repositoryMask) {
   
@@ -87,18 +88,21 @@ void handleShaderIncludes(
   void *data_new;
   
   char *p,*e, *fn_start, *q, *fn;
+  char *subject, *include_start, *include_end;
   size_t cc_fn;
   size_t i;
+  size_t cc=(*code_cb_v)[subject_idx];
   
-  if (!cc) cc=strlen(subject);
-  if (!cc) return;
+  int n_added=0;
   
-  p=subject; e=subject+cc;
+  subject=(char*)(*code_v)[subject_idx];
+  p=subject; 
+  e=subject+cc;
   
   while(p+10<e) {
     if ((*p<' ')&&(*p!='\t') && (strncmp(p+1,"#include",8)==0)) {
       // remember begin of #include and skip ahead
-      q=p+1;
+      include_start=p+1;
       p+=9;
       
       
@@ -111,15 +115,16 @@ void handleShaderIncludes(
         LOG_WARNING("WARNING: file name expected in #include directive\n");
         goto next;
       }
-      cc_fn=(size_t)p-(size_t)fn_start;
+      include_end=p;
+      cc_fn=(size_t)include_end-(size_t)fn_start;
       
       fn=(char*)malloc(cc_fn+1);
       
       memcpy(fn,fn_start,cc_fn);
       fn[cc_fn]=0;
       
-      // the last file is expected to be the source, without a name.
-      for(i=0;i<*code_n-1;i++) if (strcmp((*files_v)[i],fn)==0) {
+      // include files only once
+      for(i=0;i<*code_n;i++) if ((*files_v)[i]&&strcmp((*files_v)[i],fn)==0) {
         goto finalize_stmt;
       }
       
@@ -141,37 +146,57 @@ void handleShaderIncludes(
         goto finalize_stmt;
       }
       
-      (*code_n)++;
+      
+      // split the code apart:
+      // code_v[ 0 .. subject_idx-1 ]
+      // code before #include
+      // included code
+      // code after #include
+      // code_v [ subject_idx+1 .. $ ]
+      //
+      // this adds two more pieces of code
+      (*code_n)+=2;
+      n_added+=2;
       
       
-      
-      
+      // allocate new arrays
       *code_v   =(void** )realloc((void*)*code_v,   (*code_n)*sizeof(void*));
       *code_cb_v=(size_t*)realloc((void*)*code_cb_v,(*code_n)*sizeof(size_t*));
       *files_v  =(char** )realloc((void*)*files_v,  (*code_n)*sizeof(char*));
       
-      
-      for(i=*code_n-1;i>0;i--) { 
-        (*code_v   )[i]=(*code_v   )[i-1];
-        (*code_cb_v)[i]=(*code_cb_v)[i-1];
-        (*files_v  )[i]=(*files_v  )[i-1];
+      // shift following files down
+      for(i=*code_n-1;i>subject_idx+1;i--) {
+        (*code_v   )[i]=(*code_v   )[i-2];
+        (*code_cb_v)[i]=(*code_cb_v)[i-2];
+        (*files_v  )[i]=(*files_v  )[i-2];
       }
       
-      (*code_v   )[0]=data_new;
-      (*code_cb_v)[0]=cb_new;
-      (*files_v  )[0]=fn_new;
+      (*code_cb_v)[subject_idx]=(size_t)include_start-(size_t)subject;
       
-      handleShaderIncludes(
-        (char*)data_new,cb_new,
+      (*code_v   )[subject_idx+1]=data_new;
+      (*code_cb_v)[subject_idx+1]=cb_new;
+      (*files_v  )[subject_idx+1]=fn_new;
+      
+      (*code_v   )[subject_idx+2]=include_end;
+      (*code_cb_v)[subject_idx+2]=(size_t)e-(size_t)include_end;
+      // set the file name only if it is the beginning and thus can be freed.
+      (*files_v  )[subject_idx+2]=0;
+      
+      subject=include_end;
+      subject_idx+=2;
+      
+      subject_idx+=handleShaderIncludes(
+        subject_idx-1,
         code_v,code_cb_v,files_v,code_n,
         repositoryMask);
       
       finalize_stmt:
+      
+      memset(include_start,' ',(size_t)include_end-(size_t)include_start);
+      
       free((void*)fn);
       
-      // erase #include statement so there will be no error
-      memset(q,' ',(size_t)p-(size_t)q);
-      
+      p--;
       
       next: ;
     }
@@ -179,6 +204,7 @@ void handleShaderIncludes(
     
   }
   
+  return n_added;
 }
 
 void handleShaderIncludes(
@@ -200,9 +226,10 @@ void handleShaderIncludes(
   (*files_v  )[0]=0;
   
   handleShaderIncludes(
-    (char*)(*code_v)[0],cc,
+    0,
     code_v,code_cb_v,files_v,code_n,
     repositoryMask);
+  
   
 }
 
@@ -244,7 +271,7 @@ int Shader::attach(const char *code, size_t cc, int mode) {
   
   glShaderSource(shd,code_n,(const char**)code_v,(const int*)code_cb_v);
   
-  for(i=0;i<code_n;i++) {
+  for(i=0;i<code_n;i++) if (files_v[i]) {
     free((void*)code_v[i]);
     if (files_v[i]) free((void*)files_v[i]);
   }
@@ -263,8 +290,8 @@ int Shader::attach(const char *code, size_t cc, int mode) {
     log=(char*)malloc(ccLog+1);
     glGetShaderInfoLog(shd,ccLog+1,&ccLog,log);
     LOG_WARNING(
-      "WARNING: shader program %i compilation error:\n  %s\n",
-      idx, log);
+      "WARNING: shader %s program %i compilation error:\n  %s\n",
+      _sourceFiles[idx],idx, log);
     
     free((void*)log);
     return 0;
@@ -304,12 +331,13 @@ int Shader::attachFile(const char *fn_in, int mode) {
     goto finalize;
   }
   
-  r=attach((char*)data,cb,mode);
-  
   if (_sourceFiles[idx]) {
     free((void*)_sourceFiles[idx]);
   }
   _sourceFiles[idx]=fn;
+  
+  r=attach((char*)data,cb,mode);
+  
   fn=0;
   
   finalize:

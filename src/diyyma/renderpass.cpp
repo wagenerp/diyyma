@@ -4,7 +4,8 @@
 
 IRenderPass::IRenderPass(): 
   _frameBufferObject(0),
-  flags(0) {
+  flags(0),
+  _viewport{0,0,0,0} {
   ARRAY_INIT(_drawBuffers);
 }
 
@@ -22,9 +23,20 @@ void IRenderPass::assignDrawBuffer(GLenum buf) {
   flags|=RP_SET_DRAW_BUFFERS;
 }
 
+void IRenderPass::setViewport(GLint x, GLint y, GLint w, GLint h) {
+  _viewport[0]=x;
+  _viewport[1]=y;
+  _viewport[2]=w;
+  _viewport[3]=h;
+  flags|=RP_SET_VIEWPORT;
+}
+
 void IRenderPass::beginPass() {
   if (flags&RP_SET_FBO) 
     glBindFramebuffer(GL_FRAMEBUFFER,_frameBufferObject);
+  
+  if (flags&RP_SET_VIEWPORT)
+    glViewport(_viewport[0],_viewport[1],_viewport[2],_viewport[3]);
   
   if (flags&RP_NO_COLOR)
     glDrawBuffer(GL_NONE);
