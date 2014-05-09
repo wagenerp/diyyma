@@ -384,6 +384,9 @@ template<class T, class K> void sortByKeys(T *objects, K *keys, size_t n) {
   quickSort<T,K>(objects,keys,0,n-1);
 }
 
+#define max(x,y) (((x)>(y))?(x):(y))
+#define min(x,y) (((x)<(y))?(x):(y))
+
 double randf();
 
 char *strdup(const char *str);
