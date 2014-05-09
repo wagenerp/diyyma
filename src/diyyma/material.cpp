@@ -53,6 +53,7 @@ void Material::updateUniforms() {
   _u_V   =_shader->locate("u_V");
   _u_P   =_shader->locate("u_P");
   _u_time=_shader->locate("u_time");
+  _u_camPos_w= _shader->locate("u_camPos_w");
   // todo: locate material parameters
 }
 
@@ -63,7 +64,7 @@ void Material::applyUniforms(SceneContext ctx) {
   if (-1!=_u_MV  ) glUniformMatrix4fv(_u_MV ,1,0,&ctx.MV.a11);
   if (-1!=_u_MVP ) glUniformMatrix4fv(_u_MVP,1,0,&ctx.MVP.a11);
   if (-1!=_u_time) glUniform1f(_u_time,ctx.time);
-  
+  if (-1!=_u_camPos_w) glUniform3fv(_u_camPos_w,1,&ctx.camPos_w.x);
   // todo: transmit material parameters (perhaps use UBOs)
 }
 

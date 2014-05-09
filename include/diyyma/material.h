@@ -39,6 +39,8 @@ class Material : public RCObject,
     GLint _u_V;
     GLint _u_P;
     GLint _u_time;
+	GLint _u_camPos_w;
+	
   public:
     /** \brief Ambient reflection coefficient. */
     Vector3f ambient;
