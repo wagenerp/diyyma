@@ -544,6 +544,9 @@ class LineScanner : public RCObject {
     
     void assign(const char *data, size_t cb);
     
+    size_t tell();
+    size_t seek(int offset, int origin);
+    
     /** \brief Attempts to seek the beginning of a new line.
       *
       * The method skips over a sequence of non-newline characters followed

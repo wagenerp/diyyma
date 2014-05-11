@@ -23,6 +23,7 @@
 #include "diyyma/texture.h"
 #include "diyyma/util.h"
 #include "diyyma/math.h"
+#include "diyyma/bezier.h"
 #include "diyyma/scenecontext.h"
 
 class LightSceneNode;
@@ -203,6 +204,7 @@ class LissajousSceneNode : public ISceneNode, public IIterator {
 class CubicBezierSceneNode : 
   public IIterator,
   public IRenderableSceneNode {
+  
 #else
 class CubicBezierSceneNode : 
   public IIterator,
@@ -211,30 +213,24 @@ class CubicBezierSceneNode :
   private:
     Matrixf _transform;
     
-    ARRAY(Vector3f,_points);
+    BezierPath *_path;
     
   public:
     CubicBezierSceneNode(ISceneNode *parent);
     virtual ~CubicBezierSceneNode();
     
-    
-    /** \brief Appends a single point to our list of control points.*/
-    void operator+=(const Vector3f &p);
-    
-    void clear();
-    
-    /** \brief Causes the transformation to "roll" on turns, like jets do.
-      *
-      * Defaults to 0.
+    /** \brief Returns the currently assigned bezier path.
+      * 
+      * Note that the scene node automatically creates a BezierPath object
+      * and assigns it to itself in construction.
       */
-    float rollFactor;
-    
-    /** \brief The up direction, used for computing the roll value of
-      * the spline's rotation.
-      *
-      * Defaults to the positive z axis.
+    BezierPath *path();
+    /** \brief Assigns a BezierPath object.
+      * 
+      * Note that the scene node automatically creates a BezierPath object
+      * and assigns it to itself in construction.
       */
-    Vector3f up;
+    void setPath(BezierPath *p);
     
     /** \brief Point in frame time at which animation is set to start. 
       *
@@ -248,12 +244,17 @@ class CubicBezierSceneNode :
       */
     float timeScale;
     
+    /** \brief Whether or not the path is to be looped.
+      *
+      * If set to zero, our transformation will be clamped between the 
+      * first and last path segments.
+      */
+    int loop;
+    
     virtual Matrixf transform();
     
     /** \brief Iterates the animation. Without this no animation is performed.*/
     virtual void iterate(double dt, double t);
-    
-    
     
     #ifdef DEBUG_DIYYMA_SPLINES
     

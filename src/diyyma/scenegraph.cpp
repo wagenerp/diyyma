@@ -253,22 +253,23 @@ CubicBezierSceneNode::CubicBezierSceneNode(ISceneNode *parent) :
   {
 #endif
   _transform.setIdentity();
-  ARRAY_INIT(_points);
-  rollFactor=0;
-  up.set(0,0,1);
+  _path=new BezierPath();
+  _path->grab();
   timeOffset=0;
   timeScale=1;
+  loop=0;
 }
 CubicBezierSceneNode::~CubicBezierSceneNode() {
-  ARRAY_DESTROY(_points);
+  if (_path) _path->drop();
 }
 
-void CubicBezierSceneNode::operator+=(const Vector3f &p) {
-  APPEND(_points,p);
-}
+BezierPath *CubicBezierSceneNode::path() { return _path; }
 
-void CubicBezierSceneNode::clear() {
-  ARRAY_DESTROY(_points);
+void CubicBezierSceneNode::setPath(BezierPath *p) {
+  if (p==_path) return;
+  if (_path) _path->drop();
+  _path=p;
+  if (_path) _path->grab();
 }
 
 
@@ -277,86 +278,37 @@ Matrixf CubicBezierSceneNode::transform() {
 }
 
 void CubicBezierSceneNode::iterate(double dt, double t) {
-  int idx;
-  int n;
-  float roll, c,s;
-  Vector3f p;
-  Vector3f f,l0,u0,l,u;
-  Vector3f a;
-  
-  if (_points_n<4) return;
-  t=(t-timeOffset)*timeScale;
-  
-  
-  n=(_points_n-1)/3;
-  if ((t<=0) || (n==0)) {
-    t=0;
-    idx=0;
-  } else if (t>(float)n) {
-    t=1;
-    idx=n-1;
-  } else {
-    idx=(int)t;
-    t-=idx;
+  if (_path) {
+    _transform=_path->transformation((t-timeOffset)*timeScale,loop);
   }
-  
-  idx*=3;
-  
-  p=Vector3f::Bezier(
-    _points_v[idx],_points_v[idx+1],_points_v[idx+2],_points_v[idx+3],t);
-  f=Vector3f::BezierVelocity(
-    _points_v[idx],_points_v[idx+1],_points_v[idx+2],_points_v[idx+3],t).normal();
-  
-  l0=(up%f).normal();
-  u0=f%l0;
-  
-  if (rollFactor!=0) {
-    // todo: Improve computation of the roll angle.
-    a=Vector3f::BezierAcceleration(
-      _points_v[idx],_points_v[idx+1],_points_v[idx+2],_points_v[idx+3],t).normal();
-    a-=u*(u*a);
-    a.normalize();
-    
-    roll=asin(a*l0)*rollFactor;
-    
-    c=cos(roll);
-    s=sin(roll);
-    l=c*l0-s*u0;
-    u=s*l0+c*u0;
-  } else {
-    l=l0;
-    u=u0;
-  }
-  
-  _transform.set(
-    f.x,l.x,u.x,p.x,
-    f.y,l.y,u.y,p.y,
-    f.z,l.z,u.z,p.z,
-    0,0,0,1);
-  
 }
 
 #ifdef DEBUG_DIYYMA_SPLINES
 void CubicBezierSceneNode::render(SceneContext ctx) {
   int i;
   float t;
-  int n;
+  int nSegments;
   Vector3f p;
-  glColor3f(1,0.4,1);
+  Shader *shd;
+  if (!_path) return;
   
-  n=(_points_n-1)/3;
+  if (parent()) ctx.MVP*=parent()->absTransform();
   
-  glMatrixMode(GL_PROJECTION); glLoadMatrixf(&ctx.MVP.a11);
-  glMatrixMode(GL_MODELVIEW); glLoadIdentity();
+  shd=reg_shd()->get("debug-linestrip");
+  shd->bind();
+  glUniformMatrix4fv(shd->locate("u_MVP"),1,0,&ctx.MVP.a11);
+  
+  nSegments=_path->segmentCount();
+  
   glBegin(GL_LINE_STRIP);
-    for(i=0;i<n;i++) {
+    for(i=0;i<nSegments;i++) {
       for(t=0;t<1;t+=0.04) {
-        p=Vector3f::Bezier(
-          _points_v[i*3],_points_v[i*3+1],_points_v[i*3+2],_points_v[i*3+3],t);
+        p=_path->position(i+t,0);
         glVertex3fv(&p.x);
       }
     }
   glEnd();
+  shd->unbind();
 }
 
 void CubicBezierSceneNode::sendGeometry() {

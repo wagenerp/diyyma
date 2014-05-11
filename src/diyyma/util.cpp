@@ -289,6 +289,25 @@ void LineScanner::assign(const char *data, size_t cb) {
   _end=_data+cb;
 }
 
+size_t LineScanner::tell() {
+  return (size_t)_p-(size_t)_data;
+}
+
+size_t LineScanner::seek(int offset, int origin) {
+  int p;
+  switch(origin) {
+    default:
+    case 0: p=offset; break;
+    case 1: p=(int)_p-(int)_data+offset; break;
+    case 2: p=(int)_end-(int)_data+offset; break;
+  }
+  if (p<0) p=0; else if (p>(int)_end-(int)_data) p=(int)_end-(int)_data;
+  
+  _p=_data+p;
+  
+  return (size_t)p;
+}
+
 int LineScanner::seekNewLine() {
   _newLine=1;
   
