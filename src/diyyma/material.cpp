@@ -2,26 +2,6 @@
 #include "diyyma/material.h"
 #include "GL/glew.h"
 
-#ifdef _MSC_VER
-Material::Material() :
-  _u_MVP(-1),
-  _u_MV(-1),
-  _u_V(-1),
-  _u_P(-1),
-  _u_time(-1),
-  alpha(1),
-  shininess(40),
-  refractionIndex(1),
-  IShaderReferrer(),
-  ITextureReferrer<MAX_MATERIAL_TEXTURES>() {
-  ambient.x=1; ambient.y=1; ambient.z=1;
-  diffuse.x=1; diffuse.y=1; diffuse.z=1;
-  specular.x=1; specular.y=1; specular.z=1;
-  emission.x=1; emission.y=1; emission.z=1;
-  transmission.x=1; transmission.y=1; transmission.z=1;
-  _shaderReferrer=this;
-}
-#else
 Material::Material() :
   _u_MVP(-1),
   _u_MV(-1),
@@ -29,23 +9,27 @@ Material::Material() :
   _u_V(-1),
   _u_P(-1),
   _u_time(-1),
-  ambient{1,1,1},
-  diffuse{1,1,1},
-  specular{1,1,1},
-  emission{0,0,0},
-  transmission{1,1,1},
-  alpha(1),
-  shininess(40),
-  refractionIndex(1),
   IShaderReferrer(),
   ITextureReferrer<MAX_MATERIAL_TEXTURES>() {
   
   _shaderReferrer=this;
   
 }
-#endif
 
-Material::~Material() { }
+Material::~Material() {
+  if (_id_shader) free((void*)_id_shader);
+}
+
+void Material::loadXCO(XCOReaderContext *xco) {
+  
+}
+void Material::saveXCO(XCOWriterContext *xco) {
+  xcow_chunk_new(xco,XCO_DIYYMA_MATERIAL);
+  
+  
+  
+  xcow_chunk_close(xco);
+}
 
 void Material::updateUniforms() {
   _u_MVP =_shader->locate("u_MVP");
@@ -182,7 +166,7 @@ int MaterialLibrary::load(const char *fn, int flags) {
   size_t cb;
   LineScanner *scanner;
   SubString str, str1;
-  char *str_tmp;
+  char *str_tmp, *str_tmp2;
   int idx, i,j;
   size_t   imat;
   NamedMaterial *pmat;
@@ -233,52 +217,38 @@ int MaterialLibrary::load(const char *fn, int flags) {
       mat=_materials_v[idx].mat;
       mat->grab();
     } else if (!mat) {
-    } else if (str=="Ka") {
-      if (!scanner->getFloat(&mat->ambient.x,1)) continue;
-      if (!scanner->getFloat(&mat->ambient.y,1)) mat->ambient.y=mat->ambient.x;
-      if (!scanner->getFloat(&mat->ambient.z,1)) mat->ambient.z=mat->ambient.x;
-    } else if (str=="Kd") {
-      if (!scanner->getFloat(&mat->diffuse.x,1)) continue;
-      if (!scanner->getFloat(&mat->diffuse.y,1)) mat->diffuse.y=mat->diffuse.x;
-      if (!scanner->getFloat(&mat->diffuse.z,1)) mat->diffuse.z=mat->diffuse.x;
-    } else if (str=="Ks") {
-      if (!scanner->getFloat(&mat->specular.x,1)) continue;
-      if (!scanner->getFloat(&mat->specular.y,1)) mat->specular.y=mat->specular.x;
-      if (!scanner->getFloat(&mat->specular.z,1)) mat->specular.z=mat->specular.x;
-    } else if (str=="Tf") {
-      if (!scanner->getFloat(&mat->transmission.x,1)) continue;
-      if (!scanner->getFloat(&mat->transmission.y,1)) mat->transmission.y=mat->transmission.x;
-      if (!scanner->getFloat(&mat->transmission.z,1)) mat->transmission.z=mat->transmission.x;
-    } else if (str=="illum") {
-      // ignored. Illumination models are part of the shader
-    } else if (str=="d") {
-      scanner->getDouble(&mat->alpha,1);
-    } else if (str=="Ns") {
-      scanner->getDouble(&mat->shininess,1);
-    } else if (str=="Ni") {
-      scanner->getDouble(&mat->refractionIndex,1);
     } else if (str=="map_Ka") {
       if (!scanner->getLnString(&str)) continue;
-      mat->addTexture(tex->get(str),"s_ambient");
+      str_tmp=str.dup();
+      mat->addTexture(str_tmp,"s_ambient");
+      free((void*)str_tmp);
     } else if (str=="map_Kd") {
       if (!scanner->getLnString(&str)) continue;
-      mat->addTexture(tex->get(str),"s_diffuse");
+      str_tmp=str.dup();
+      mat->addTexture(str_tmp,"s_diffuse");
+      free((void*)str_tmp);
     } else if (str=="map_Ks") {
       if (!scanner->getLnString(&str)) continue;
-      mat->addTexture(tex->get(str),"s_specular");
+      str_tmp=str.dup();
+      mat->addTexture(str_tmp,"s_specular");
+      free((void*)str_tmp);
     } else if (str=="#texture") {
       if (!scanner->getLnString(&str)) continue;
       if (!scanner->getLnString(&str1)) continue;
       str_tmp=str.dup();
-      mat->addTexture(tex->get(str1),str_tmp);
+      str_tmp2=str1.dup();
+      mat->addTexture(str_tmp2,str_tmp);
       free((void*)str_tmp);
+      free((void*)str_tmp2);
       
     } else if (str=="#shader") {
       // todo: investigate if specifying new commands causes problems with
       // common loaders and if so, make it a line comment.
       
       if (!scanner->getLnString(&str)) continue;
-      mat->setShader(shd->get(str));
+      str_tmp=str.dup();
+      mat->setShader(str_tmp);
+      free((void*)str_tmp);
     }
     
   }

@@ -96,6 +96,16 @@ int BezierPath::segmentCount() {
   return (_points_n)/3-1;
 }
 
+void BezierPath::setSegmentCount(int n) {
+  if (n<1) return;
+  _points_n=3*(n+1);
+  _points_v=(Vector3f*)realloc((void*)_points_v,sizeof(Vector3f)*_points_n);
+}
+
+Vector3f *BezierPath::points() {
+  return _points_v;
+}
+
 Matrixf BezierPath::transformation(double t, int loop) {
   int idx;
   int n;

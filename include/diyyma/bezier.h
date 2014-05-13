@@ -29,6 +29,8 @@ class BezierPath : public RCObject {
     void load(LineScanner *scanner);
     void load(const char *fn_in, int repositoryMask);
     int  segmentCount();
+    void setSegmentCount(int n);
+    Vector3f *points();
     
     Matrixf transformation(double t, int loop);
     Vector3f position(double t, int loop);

@@ -199,11 +199,16 @@ class Texture : public IAsset {
     virtual int load(const char *fn, int flags);
 };
 
+AssetRegistry<Texture> *reg_tex();
+void reg_tex_free();
+
 
 template<int N> class ITextureReferrer {
   protected:
     Texture    *_textures[N];
     GLint       _texture_locs[N];
+    
+    char       *_texture_names[N];
     
     IShaderReferrer *_shaderReferrer;
     
@@ -215,12 +220,15 @@ template<int N> class ITextureReferrer {
       for(i=0;i<N;i++) {
         _textures[i]=0;
         _texture_locs[i]=-1;
+        _texture_names[i]=0;
       }
     }
     ~ITextureReferrer() {
       int i;
-      for(i=0;i<N;i++)
+      for(i=0;i<N;i++) {
         if (_textures[i]) _textures[i]->drop();
+        //if (_texture_names[i]) free((void*)_texture_names[i]);
+      }
     }
     
     Texture *texture(size_t index) {
@@ -234,7 +242,7 @@ template<int N> class ITextureReferrer {
         if (!_textures[i]) break;
       return i;
     }
-    void addTexture(Texture *t, const char *loc) {
+    int addTexture(Texture *t, const char *loc) {
       int i;
       Shader *shd=0;
       if (_shaderReferrer) shd=_shaderReferrer->shader();
@@ -246,14 +254,27 @@ template<int N> class ITextureReferrer {
             _texture_locs[i]=shd->locate(loc);
           else 
             _texture_locs[i]=-1;
-          break;
+          return i;
         }
+      return -1;
+      
+    }
+    int addTexture(const char *name, const char *loc) {
+      Texture *tex;
+      int idx=-1;
+      
+      tex=reg_tex()->get(name);
+      
+      if (tex) {
+        idx=addTexture(tex,loc);
+        if (idx!=-1) {
+          _texture_names[idx]=strdup(name);
+        }
+      }
+      return idx;
       
     }
     
 };
-
-AssetRegistry<Texture> *reg_tex();
-void reg_tex_free();
 
 #endif

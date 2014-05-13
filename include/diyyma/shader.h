@@ -126,6 +126,8 @@ class Shader : public IAsset {
 class IShaderReferrer {
   protected:
     Shader *_shader;
+    
+    char *_id_shader;
   
   public:
     IShaderReferrer();
@@ -133,6 +135,7 @@ class IShaderReferrer {
     
     Shader *shader();
     void setShader(Shader *s);
+    void setShader(const char *id);
     
     virtual void updateUniforms() =0;
 };

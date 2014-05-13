@@ -53,7 +53,7 @@ union face_t {
   long &operator[](int idx) { return v[idx]; }
 };
 
-void StaticMesh::loadOBJ(char *code) {
+void StaticMesh::loadOBJ(char *code, const char *outputDOF) {
   LineScanner *scanner;
   SubString str;
   Vector3f bv;
@@ -69,6 +69,10 @@ void StaticMesh::loadOBJ(char *code) {
   size_t idx, idxo;
   int i;
   ArrayBuffer *bufv;
+  
+  XCOWriterContext *xco=0;
+  DOFArray          dof_array_head;
+  FILE             *fDOF;
   
   smat.ptr=0;
   ARRAY(Vector3f,vertices);
@@ -189,6 +193,19 @@ void StaticMesh::loadOBJ(char *code) {
   // assemble and send array buffers
   bufv=_buffers;
   
+  if (outputDOF) {
+    if (!xcow_create(&xco)) {
+      xco=0;
+      LOG_WARNING(
+        "WARNING: unable to create XCO writer context!");
+      goto vertices;
+    }
+    
+    xcow_chunk_new(xco,XCO_DIYYMA_OBJECT);
+    
+  }
+  
+  
   
   // vertices
   vertices:
@@ -204,6 +221,22 @@ void StaticMesh::loadOBJ(char *code) {
   glBindBuffer(GL_ARRAY_BUFFER,bufv->handle);
   glBufferData(GL_ARRAY_BUFFER,_vertexCount*3*sizeof(float),buffer,GL_STATIC_DRAW);
   glBindBuffer(GL_ARRAY_BUFFER,0);
+  
+  if (xco) {
+    xcow_chunk_new(xco,XCO_DIYYMA_OBJECT_ARRAY);
+    
+    dof_array_head.index=bufv->index;
+    dof_array_head.type =bufv->type;
+    dof_array_head.dimension=bufv->dimension;
+    dof_array_head.cbData=sizeof(float)*_vertexCount*bufv->dimension;
+    
+    xcow_data_write(xco,dof_array_head);
+    xcow_data_writearr(xco,buffer,dof_array_head.cbData);
+    
+    xcow_chunk_close(xco);
+  
+  }
+  
   bufv++;
   
   
@@ -221,6 +254,22 @@ void StaticMesh::loadOBJ(char *code) {
   glBindBuffer(GL_ARRAY_BUFFER,bufv->handle);
   glBufferData(GL_ARRAY_BUFFER,_vertexCount*3*sizeof(float),buffer,GL_STATIC_DRAW);
   glBindBuffer(GL_ARRAY_BUFFER,0);
+  
+  if (xco) {
+    xcow_chunk_new(xco,XCO_DIYYMA_OBJECT_ARRAY);
+    
+    dof_array_head.index=bufv->index;
+    dof_array_head.type =bufv->type;
+    dof_array_head.dimension=bufv->dimension;
+    dof_array_head.cbData=sizeof(float)*_vertexCount*bufv->dimension;
+    
+    xcow_data_write(xco,dof_array_head);
+    xcow_data_writearr(xco,buffer,dof_array_head.cbData);
+    
+    xcow_chunk_close(xco);
+  
+  }
+  
   bufv++;
   
   binormals:
@@ -237,6 +286,22 @@ void StaticMesh::loadOBJ(char *code) {
   glBindBuffer(GL_ARRAY_BUFFER,bufv->handle);
   glBufferData(GL_ARRAY_BUFFER,_vertexCount*3*sizeof(float),buffer,GL_STATIC_DRAW);
   glBindBuffer(GL_ARRAY_BUFFER,0);
+  
+  if (xco) {
+    xcow_chunk_new(xco,XCO_DIYYMA_OBJECT_ARRAY);
+    
+    dof_array_head.index=bufv->index;
+    dof_array_head.type =bufv->type;
+    dof_array_head.dimension=bufv->dimension;
+    dof_array_head.cbData=sizeof(float)*_vertexCount*bufv->dimension;
+    
+    xcow_data_write(xco,dof_array_head);
+    xcow_data_writearr(xco,buffer,dof_array_head.cbData);
+    
+    xcow_chunk_close(xco);
+  
+  }
+  
   bufv++;
   
   tangents:
@@ -253,6 +318,22 @@ void StaticMesh::loadOBJ(char *code) {
   glBindBuffer(GL_ARRAY_BUFFER,bufv->handle);
   glBufferData(GL_ARRAY_BUFFER,_vertexCount*3*sizeof(float),buffer,GL_STATIC_DRAW);
   glBindBuffer(GL_ARRAY_BUFFER,0);
+  
+  if (xco) {
+    xcow_chunk_new(xco,XCO_DIYYMA_OBJECT_ARRAY);
+    
+    dof_array_head.index=bufv->index;
+    dof_array_head.type =bufv->type;
+    dof_array_head.dimension=bufv->dimension;
+    dof_array_head.cbData=sizeof(float)*_vertexCount*bufv->dimension;
+    
+    xcow_data_write(xco,dof_array_head);
+    xcow_data_writearr(xco,buffer,dof_array_head.cbData);
+    
+    xcow_chunk_close(xco);
+  
+  }
+  
   bufv++;
   
   
@@ -270,10 +351,58 @@ void StaticMesh::loadOBJ(char *code) {
   glBindBuffer(GL_ARRAY_BUFFER,bufv->handle);
   glBufferData(GL_ARRAY_BUFFER,_vertexCount*2*sizeof(float),buffer,GL_STATIC_DRAW);
   glBindBuffer(GL_ARRAY_BUFFER,0);
+  
+  if (xco) {
+    xcow_chunk_new(xco,XCO_DIYYMA_OBJECT_ARRAY);
+    
+    dof_array_head.index=bufv->index;
+    dof_array_head.type =bufv->type;
+    dof_array_head.dimension=bufv->dimension;
+    dof_array_head.cbData=sizeof(float)*_vertexCount*bufv->dimension;
+    
+    xcow_data_write(xco,dof_array_head);
+    xcow_data_writearr(xco,buffer,dof_array_head.cbData);
+    
+    xcow_chunk_close(xco);
+    
+  }
+  
   bufv++;
   
   done_buffers:
   free(buffer);
+  
+  
+  if (xco) {
+    for(idx=0;idx<_materials_n;idx++) {
+      xcow_chunk_new(xco,XCO_DIYYMA_OBJECT_MATERIAL_SLICE);
+      xcow_chunk_new(xco,0x0001);
+      xcow_data_write(xco,(int32_t)_materials_v[idx].vertexCount);
+      xcow_data_write(xco,(int32_t)_materials_v[idx].vertexOffset);
+      xcow_chunk_close(xco);
+      
+      _materials_v[idx].mat->saveXCO(xco);
+      
+      xcow_chunk_close(xco);
+    }
+    
+    xcow_finalize(xco);
+    
+    fDOF=fopen(outputDOF,"wb");
+    
+    if (!fDOF) {
+      LOG_WARNING(
+        "WARNING: unable to open output DOF file '%s'!",
+        outputDOF);
+      goto cleanup;
+    }
+    
+    fwrite(xco->data,1,(size_t)xco->p-(size_t)xco->data,fDOF);
+    
+    fclose(fDOF);
+    
+  }
+  
   
   // cleanup
   

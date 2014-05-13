@@ -34,6 +34,8 @@
 #define XCO_DIYYMA_OBJECT 0x4f594944
 /** \brief Locally unique token identifying DIYYMA object array buffers */
 #define XCO_DIYYMA_OBJECT_ARRAY  0x00010001
+/** \brief Locally unique token identifying DIYYMA object material slices */
+#define XCO_DIYYMA_OBJECT_MATERIAL_SLICE  0x00010002
 
 struct DOFArray {
   u_int32_t index;
@@ -84,7 +86,7 @@ class StaticMesh : public IAsset {
     const MaterialSlice &material(int idx);
     
     
-    void loadOBJ(char *code);
+    void loadOBJ(char *code, const char *outputDOF=0);
     int loadOBJFile(const char *fn);
     int loadDOFFile(const char *fn);
     

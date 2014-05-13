@@ -10,10 +10,14 @@
 #define _DIYYMA_MATERIAL_H
 
 #include "diyyma/util.h"
+#include "diyyma/xco.h"
 #include "diyyma/math.h"
 #include "diyyma/texture.h"
 #include "diyyma/shader.h"
 #include "diyyma/scenecontext.h"
+
+/** \brief Universally unique token identifying DIYYMA materials */
+#define XCO_DIYYMA_MATERIAL  0x4f59af31
 
 #define MAX_MATERIAL_TEXTURES 8
 
@@ -25,7 +29,6 @@
   * big time.
   */
 #define MATLIB_LOAD_UPDATE 0x01
-
 
 class Material : public RCObject,
   public IShaderReferrer,
@@ -39,37 +42,21 @@ class Material : public RCObject,
     GLint _u_V;
     GLint _u_P;
     GLint _u_time;
-	GLint _u_camPos_w;
-	
-  public:
-    /** \brief Ambient reflection coefficient. */
-    Vector3f ambient;
-    /** \brief Diffuse reflection coefficient. */
-    Vector3f diffuse;
-    /** \brief Specular reflection coefficient. */
-    Vector3f specular;
-    /** \brief Autoemissive color */
-    Vector3f emission;
-    /** \brief Translucent material transmission coefficient.
-      *
-      * When light passes through a translucent object, it gets attenuated.
-      * This vector describes attenuation factors per color component.
-      */
-    Vector3f transmission;
+    GLint _u_camPos_w;
     
-    double alpha;
-    double shininess;
-    double refractionIndex;
-  
   public:
     Material();
     ~Material();
+    
+    void loadXCO(XCOReaderContext *xco);
+    void saveXCO(XCOWriterContext *xco);
     
     virtual void updateUniforms();
     virtual void applyUniforms(SceneContext ctx);
     
     virtual void bind(SceneContext ctx);
     virtual void unbind();
+    
 };
 
 struct NamedMaterial {

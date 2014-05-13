@@ -442,9 +442,10 @@ int Shader::load(const char *fn, int flags) {
 }
 
 
-IShaderReferrer::IShaderReferrer() : _shader(0) { }
+IShaderReferrer::IShaderReferrer() : _shader(0), _id_shader(0) { }
 IShaderReferrer::~IShaderReferrer() {
   if (_shader) _shader->drop();
+  //if (_id_shader) free((void*)_id_shader);
 }
 
 Shader *IShaderReferrer::shader() { return _shader; }
@@ -456,6 +457,21 @@ void IShaderReferrer::setShader(Shader *s) {
     _shader->grab();
     updateUniforms();
   }
+}
+void IShaderReferrer::setShader(const char *id) {
+  Shader *shd;
+  shd=reg_shd()->get(id);
+  
+  if (shd==_shader) return;
+  if (_id_shader) free((void*)_id_shader);
+  if (shd) {
+    setShader(shd);
+    _id_shader=strdup(id);
+  } else {
+    setShader((Shader*)0);
+    _id_shader=0;
+  }
+  
 }
 
 
