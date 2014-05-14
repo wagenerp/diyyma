@@ -172,6 +172,7 @@ class SceneNodeRenderPass :
     
     GLint _u_MVP;
     GLint _u_MV;
+    GLint _u_M;
     GLint _u_V;
     GLint _u_P;
     GLint _u_time;

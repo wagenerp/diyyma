@@ -84,6 +84,7 @@ void IRenderPass::endPass() {
 SceneNodeRenderPass::SceneNodeRenderPass() :
   _u_MVP(-1),
   _u_MV(-1),
+  _u_M(-1),
   _u_V(-1),
   _u_P(-1),
   _u_time(-1),
@@ -144,6 +145,7 @@ void SceneNodeRenderPass::sortByDistance() {
 void SceneNodeRenderPass::updateUniforms() {
   _u_MVP =_shader->locate("u_MVP");
   _u_MV  =_shader->locate("u_MV");
+  _u_M   =_shader->locate("u_M");
   _u_V   =_shader->locate("u_V");
   _u_P   =_shader->locate("u_P");
   _u_camPos_w=_shader->locate("u_camPos_w");

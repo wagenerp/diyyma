@@ -853,6 +853,17 @@ template<class T> struct Vector3 {
       return (6*s)*(p2-p1-p1+p0) + (6*t)*(p3-p2-p2+p1);
     }
     
+    /** \brief Returns a uniformly picked vector on the unit sphere.
+      */
+    
+    static Vector3<T> UniformSphereSurface() {
+      T t,ct,st, p,cp,sp;
+      p=acos(randf()*2.0-1.0); cp=cos(p); sp=sin(p);
+      t=randf()*(2.0*PI);      ct=cos(t); st=sin(t);
+      
+      return Vector3<T>(ct*sp,st*sp,cp);
+      
+    }
 };
 
 static Vector3f operator*(float f, const Vector3f &v) { return v*f; }
