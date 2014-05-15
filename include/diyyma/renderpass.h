@@ -117,6 +117,7 @@ class IRenderPass : public IComponent {
     ARRAY(GLenum,_drawBuffers);
     GLuint _frameBufferObject;
     GLint _viewport[4];
+		float _clearColor[4];
   
   public:
     IRenderPass();
@@ -153,6 +154,11 @@ class IRenderPass : public IComponent {
       * Calling this method also sets the RP_SET_VIEWPORT flag.
       */
     void setViewport(GLint x, GLint y, GLint w, GLint h);
+		
+		/** \brief Assigns a custom color to the render pass to clear the color 
+      * attachment with. 
+      */
+		void setClearColor(float r, float g, float b, float a);
     
     virtual void beginPass();
     virtual void endPass();

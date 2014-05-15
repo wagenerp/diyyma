@@ -7,7 +7,8 @@ IRenderPass::IRenderPass():
   flags(0),
   blend_src(GL_SRC_ALPHA),
   blend_trg(GL_ONE_MINUS_SRC_ALPHA),
-  _viewport{0,0,0,0} {
+  _viewport{0,0,0,0},
+	_clearColor{0,0,0,0}{
   ARRAY_INIT(_drawBuffers);
 }
 
@@ -15,6 +16,12 @@ IRenderPass::~IRenderPass() {
   ARRAY_DESTROY(_drawBuffers);
 }
 
+void IRenderPass::setClearColor(float r, float g, float b, float a){
+	_clearColor[0] = r;
+	_clearColor[1] = g;
+	_clearColor[2] = b;
+	_clearColor[3] = a;
+}
 
 void IRenderPass::setFBO(GLuint fbo) {
   _frameBufferObject=fbo;
@@ -62,7 +69,7 @@ void IRenderPass::beginPass() {
     glClear(GL_DEPTH_BUFFER_BIT);
   }
   if (flags&RP_CLEAR_COLOR) {
-    glClearColor(0,0,0,0);
+    glClearColor(_clearColor[0], _clearColor[1], _clearColor[2], _clearColor[3]);
     glClear(GL_COLOR_BUFFER_BIT);
   }
     //glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
