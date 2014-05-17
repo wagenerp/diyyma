@@ -113,6 +113,10 @@ void cleanup();
 int _running=0;
 int _doRender=0;
 
+double gTime=0;
+double gTimeOffset=0;
+double gTimeScale=1;
+
 ARRAY(IComponent*,component);
 ARRAY(IIterator*,iterator);
 
@@ -145,7 +149,7 @@ int main(int argn, char **argv) {
   SDL_Event      ev;
   int            r,i;
   int            vMinor, vMajor;
-  double         timeScale,dt, time;
+  double         timeScale,dt;
   Uint64         ticksLast=0, ticksBegin, ticks;
   
   IComponent   **pcomp;
@@ -247,13 +251,13 @@ int main(int argn, char **argv) {
     }
     
     ticks=SDL_GetPerformanceCounter();
-    time=(double)(ticks-ticksBegin)*timeScale;
+    gTime=(double)(ticks-ticksBegin)*timeScale*gTimeScale+gTimeOffset;
     dt=(double)(ticks-ticksLast)*timeScale;
     ticksLast=ticks;
     
-    FOREACH(i,pcomp,component) (*pcomp)->iterate(dt,time);
-    FOREACH(i,piter,iterator) (*piter)->iterate(dt,time);
-    iterate(dt,time);
+    FOREACH(i,pcomp,component) (*pcomp)->iterate(dt,gTime);
+    FOREACH(i,piter,iterator) (*piter)->iterate(dt,gTime);
+    iterate(dt,gTime);
     
     #if !AUTORENDER
       if(_doRender) {

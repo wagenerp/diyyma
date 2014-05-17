@@ -186,11 +186,15 @@ timestamp_t file_timestamp(const char *fn);
 #define REPOSITORY_TEXTURE 0
 #define REPSOITORY_MESH    1
 #define REPOSITORY_SHADER  2
-#define REPOSITORY_COUNT   3
+#define REPOSITORY_SCRIPT  3
+#define REPOSITORY_MISC    4
+#define REPOSITORY_COUNT   16
 
 #define REPOSITORY_MASK_TEXTURE 0x01
 #define REPOSITORY_MASK_MESH    0x02
 #define REPOSITORY_MASK_SHADER  0x04
+#define REPOSITORY_MASK_SCRIPT  0x08
+#define REPOSITORY_MASK_MISC    0x10
 
 /** \brief Registers a path for loading assets from.
   * \param path Path to register. Must end on a path delimiter.
@@ -210,6 +214,17 @@ void vfs_registerPath(const char *path, int mask);
   * types of repositories to query for the file. 
   */
 char *vfs_locate(const char *path, int mask);
+
+/** \brief Locates and lists all occurences of a local file name in all
+  * repositories.
+  *
+  * \param files Pointer to a list of strings receiving the result list.
+  * The list is always allocated iff any files are found. If no files
+  * are found, zero is returned and files is set to null.
+  *
+  * \return Number of occurences found.
+  */
+size_t vfs_locate_all(const char *path, int mask, char ***files);
 
 #ifdef DIYYMA_DEBUG
 

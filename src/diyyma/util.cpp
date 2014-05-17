@@ -99,7 +99,12 @@ struct Repository {
   size_t path_n;
 };
 
-Repository _repositories[REPOSITORY_COUNT]= {{0,0}, {0,0}, {0,0}};
+Repository _repositories[REPOSITORY_COUNT]= {
+  {0,0}, {0,0}, {0,0}, {0,0},
+  {0,0}, {0,0}, {0,0}, {0,0},
+  {0,0}, {0,0}, {0,0}, {0,0},
+  {0,0}, {0,0}, {0,0}, {0,0}
+};
 
 
 void vfs_registerPath(const char *path, int mask) {
@@ -139,6 +144,46 @@ char *vfs_locate(const char *fn, int mask) {
   
   
   return 0;
+}
+
+size_t vfs_locate_all(const char *fn, int mask, char ***files) {
+  char buf[512];
+  char *p;
+  int cc_fn, cc_path;
+  size_t files_n=0;
+  
+  *files=0;
+  
+  
+  if (file_exists(fn)) {
+    *files=(char**)realloc((void*)*files,sizeof(char*)*(files_n+1));
+    (*files)[files_n++]=strdup(fn);
+  }
+  
+  cc_fn=strlen(fn);
+  memcpy(buf+512-cc_fn-2,fn,cc_fn+1);
+  
+  int i;
+  size_t j;
+  
+  for(i=0;i<REPOSITORY_COUNT;i++) if (mask&(1<<i))
+    for (j=0;j<_repositories[i].path_n;j++) {
+      cc_path=strlen(_repositories[i].path_v[j]);
+      p=buf+512-cc_fn-cc_path-2;
+      memcpy(p,_repositories[i].path_v[j],cc_path);
+      
+      if (file_exists(p)) {
+        *files=(char**)realloc((void*)*files,sizeof(char*)*(files_n+1));
+        (*files)[files_n++]=strdup(p); 
+      }
+    }
+  
+  if (!files_n) {
+    free((void*)*files);
+    *files=0;
+  }
+  
+  return files_n;
 }
 
 
