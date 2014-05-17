@@ -15,9 +15,22 @@
 #include "diyyma/util.h"
 #include "diyyma/math.h"
 
+#define BEZIER_FORWARD_MASK 0x03
+
+#define BEZIER_FORWARD_TARGET 0x01
+#define BEZIER_FORWARD_DIRECTION 0x02
+
+struct BezierPoint {
+  Vector3f anchor_left;
+  Vector3f position;
+  Vector3f anchor_right;
+  Vector3f forward;
+  int flags;
+};
+
 class BezierPath : public RCObject {
   private:
-    ARRAY(Vector3f,_points);
+    ARRAY(BezierPoint,_points);
     
   public:
     BezierPath();
@@ -30,7 +43,7 @@ class BezierPath : public RCObject {
     void load(const char *fn_in, int repositoryMask);
     int  segmentCount();
     void setSegmentCount(int n);
-    Vector3f *points();
+    BezierPoint *points();
     
     Matrixf transformation(double t, int loop);
     Vector3f position(double t, int loop);
