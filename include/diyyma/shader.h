@@ -47,10 +47,23 @@ class Shader : public IAsset {
     GLuint
       _program;
     
+    GLenum _transformFeedbackMode;
+    ARRAY(char*,_transformFeedbackVaryings);
+    
     int
       _linked;
     
     char *_sourceFiles[SHADER_PROGRAM_COUNT];
+    
+    int _preprocess(
+      int subject_idx, 
+      void ***code_v, size_t **code_cb_v, char ***files_v, size_t *code_n,
+      int repositoryMask);
+    
+    void _preprocess(
+      const char *subject, size_t cc, 
+      void ***code_v, size_t **code_cb_v, char ***files_v, size_t *code_n,
+      int repositoryMask);
     
   public:
     /** \brief Creates an empty, unlinked shader program. */

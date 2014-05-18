@@ -27,6 +27,8 @@ Shader::Shader(): _linked(0) {
     _sourceFiles[i]=0;
   }
   _program=glCreateProgram();
+  _transformFeedbackMode=GL_SEPARATE_ATTRIBS;
+  ARRAY_INIT(_transformFeedbackVaryings);
 }
 
 Shader::Shader(const char *basename): _linked(0) {
@@ -36,6 +38,8 @@ Shader::Shader(const char *basename): _linked(0) {
     _sourceFiles[i]=0;
   }
   _program=glCreateProgram();
+  _transformFeedbackMode=GL_SEPARATE_ATTRIBS;
+  ARRAY_INIT(_transformFeedbackVaryings);
   load(basename,0);
 }
 
@@ -46,6 +50,8 @@ Shader::Shader(const char *vsd, const char *fsd, const char *gsd): _linked(0) {
     _sourceFiles[i]=0;
   }
   _program=glCreateProgram();
+  _transformFeedbackMode=GL_SEPARATE_ATTRIBS;
+  ARRAY_INIT(_transformFeedbackVaryings);
   
   if (vsd) attach(vsd,0,GL_VERTEX_SHADER);
   if (fsd) attach(fsd,0,GL_FRAGMENT_SHADER);
@@ -57,6 +63,8 @@ Shader::Shader(const char *vsd, const char *fsd, const char *gsd): _linked(0) {
 
 Shader::~Shader() {
   int i;
+  size_t idx;
+  char **pstr;
   for(i=0;i<SHADER_PROGRAM_COUNT;i++) if (_shader[i]) {
     glDetachShader(_program,_shader[i]);
     glDeleteShader(_shader[i]);
@@ -67,6 +75,10 @@ Shader::~Shader() {
   if (_program) {
     glDeleteProgram(_program);
   }
+  
+  FOREACH(idx,pstr,_transformFeedbackVaryings)
+    free((void*)pstr);
+  ARRAY_DESTROY(_transformFeedbackVaryings);
 }
 
 GLuint Shader::program() {
@@ -78,10 +90,13 @@ GLint Shader::locate(const char *id) {
 }
 
 
-int handleShaderIncludes(
+int Shader::_preprocess(
   int subject_idx, 
   void ***code_v, size_t **code_cb_v, char ***files_v, size_t *code_n,
   int repositoryMask) {
+  
+  LineScanner *ln;
+  SubString str;
   
   char *fn_new=0;
   size_t cb_new;
@@ -99,105 +114,143 @@ int handleShaderIncludes(
   p=subject; 
   e=subject+cc;
   
-  while(p+10<e) {
-    if ((*p<' ')&&(*p!='\t') && (strncmp(p+1,"#include",8)==0)) {
-      // remember begin of #include and skip ahead
-      include_start=p+1;
-      p+=9;
-      
-      
-      while((p<e)&&((*p==' ')||(*p=='\t'))) p++;
-      
-      // read file name
-      fn_start=p;
-      while((p<e)&&(*p>' ')) p++;
-      if ((p>=e) || (p==fn_start)) {
-        LOG_WARNING("WARNING: file name expected in #include directive\n");
-        goto next;
+  while(p+11<e) {
+    if ((*p<' ')&&(*p!='\t')&&(p[1]=='#')) {
+      if (strncmp(p+2,"include ",8)==0) {
+        // remember begin of #include and skip ahead
+        include_start=p+1;
+        p+=9;
+        
+        
+        while((p<e)&&((*p==' ')||(*p=='\t'))) p++;
+        
+        // read file name
+        fn_start=p;
+        while((p<e)&&(*p>' ')) p++;
+        if ((p>=e) || (p==fn_start)) {
+          LOG_WARNING("WARNING: file name expected in #include directive\n");
+          goto next;
+        }
+        include_end=p;
+        cc_fn=(size_t)include_end-(size_t)fn_start;
+        
+        fn=(char*)malloc(cc_fn+1);
+        
+        memcpy(fn,fn_start,cc_fn);
+        fn[cc_fn]=0;
+        
+        // include files only once
+        for(i=0;i<*code_n;i++) if ((*files_v)[i]&&strcmp((*files_v)[i],fn)==0) {
+          goto finalize_stmt;
+        }
+        
+        
+        if (!(fn_new=vfs_locate(fn,repositoryMask))) {
+          LOG_WARNING(
+            "WARNING: unable to located #include'd file '%s'\n",
+            fn);
+          goto finalize_stmt;
+        }
+        
+        
+        
+        if (!readFile(fn_new,&data_new,&cb_new)) {
+          free((void*)fn_new);
+          LOG_WARNING(
+            "WARNING: unable to load #include'd file '%s' ('%s')\n",
+            fn,fn_new);
+          goto finalize_stmt;
+        }
+        
+        
+        // split the code apart:
+        // code_v[ 0 .. subject_idx-1 ]
+        // code before #include
+        // included code
+        // code after #include
+        // code_v [ subject_idx+1 .. $ ]
+        //
+        // this adds two more pieces of code
+        (*code_n)+=2;
+        n_added+=2;
+        
+        
+        // allocate new arrays
+        *code_v   =(void** )realloc((void*)*code_v,   (*code_n)*sizeof(void*));
+        *code_cb_v=(size_t*)realloc((void*)*code_cb_v,(*code_n)*sizeof(size_t*));
+        *files_v  =(char** )realloc((void*)*files_v,  (*code_n)*sizeof(char*));
+        
+        // shift following files down
+        for(i=*code_n-1;i>subject_idx+1;i--) {
+          (*code_v   )[i]=(*code_v   )[i-2];
+          (*code_cb_v)[i]=(*code_cb_v)[i-2];
+          (*files_v  )[i]=(*files_v  )[i-2];
+        }
+        
+        (*code_cb_v)[subject_idx]=(size_t)include_start-(size_t)subject;
+        
+        (*code_v   )[subject_idx+1]=data_new;
+        (*code_cb_v)[subject_idx+1]=cb_new;
+        (*files_v  )[subject_idx+1]=fn_new;
+        
+        (*code_v   )[subject_idx+2]=include_end;
+        (*code_cb_v)[subject_idx+2]=(size_t)e-(size_t)include_end;
+        // set the file name only if it is the beginning and thus can be freed.
+        (*files_v  )[subject_idx+2]=0;
+        
+        subject=include_end;
+        subject_idx+=2;
+        
+        subject_idx+=_preprocess(
+          subject_idx-1,
+          code_v,code_cb_v,files_v,code_n,
+          repositoryMask);
+        
+        finalize_stmt:
+        
+        memset(include_start,' ',(size_t)include_end-(size_t)include_start);
+        
+        free((void*)fn);
+        
+        p--;
+        
+      } else if (strncmp(p+2,"pragma ",7)==0) {
+        ln=LineScanner::GetTemporary();
+        ln->assign(p+9,e);
+        
+        if (!ln->getLnFirstString(&str)) goto finalize_pragma;
+        
+        if (str=="TFB") {
+          if (!ln->getLnString(&str)) goto finalize_pragma;
+          if (str=="mode") {
+            if (!ln->getLnString(&str)) goto finalize_pragma;
+            if (str=="separate") 
+              _transformFeedbackMode=GL_SEPARATE_ATTRIBS;
+            else if (str=="interleaved")
+              _transformFeedbackMode=GL_INTERLEAVED_ATTRIBS;
+            else
+              LOG_WARNING(
+                "WARNING: unrecognized TFB mode '%.*s' in shader source %s.\n",
+                str.length,str.ptr,
+                (*files_v)[subject_idx]);
+                
+          } else if (str=="varying") {
+            if (!ln->getLnString(&str)) goto finalize_pragma;
+            APPEND(_transformFeedbackVaryings,str.dup());
+          }
+          
+        }
+        
+        
+        finalize_pragma:
+        ln->seekNewLine();
+        p=p+ln->tell()+7;
+        
+        ln->drop();
+        
+        
+        
       }
-      include_end=p;
-      cc_fn=(size_t)include_end-(size_t)fn_start;
-      
-      fn=(char*)malloc(cc_fn+1);
-      
-      memcpy(fn,fn_start,cc_fn);
-      fn[cc_fn]=0;
-      
-      // include files only once
-      for(i=0;i<*code_n;i++) if ((*files_v)[i]&&strcmp((*files_v)[i],fn)==0) {
-        goto finalize_stmt;
-      }
-      
-      
-      if (!(fn_new=vfs_locate(fn,repositoryMask))) {
-        LOG_WARNING(
-          "WARNING: unable to located #include'd file '%s'\n",
-          fn);
-        goto finalize_stmt;
-      }
-      
-      
-      
-      if (!readFile(fn_new,&data_new,&cb_new)) {
-        free((void*)fn_new);
-        LOG_WARNING(
-          "WARNING: unable to load #include'd file '%s' ('%s')\n",
-          fn,fn_new);
-        goto finalize_stmt;
-      }
-      
-      
-      // split the code apart:
-      // code_v[ 0 .. subject_idx-1 ]
-      // code before #include
-      // included code
-      // code after #include
-      // code_v [ subject_idx+1 .. $ ]
-      //
-      // this adds two more pieces of code
-      (*code_n)+=2;
-      n_added+=2;
-      
-      
-      // allocate new arrays
-      *code_v   =(void** )realloc((void*)*code_v,   (*code_n)*sizeof(void*));
-      *code_cb_v=(size_t*)realloc((void*)*code_cb_v,(*code_n)*sizeof(size_t*));
-      *files_v  =(char** )realloc((void*)*files_v,  (*code_n)*sizeof(char*));
-      
-      // shift following files down
-      for(i=*code_n-1;i>subject_idx+1;i--) {
-        (*code_v   )[i]=(*code_v   )[i-2];
-        (*code_cb_v)[i]=(*code_cb_v)[i-2];
-        (*files_v  )[i]=(*files_v  )[i-2];
-      }
-      
-      (*code_cb_v)[subject_idx]=(size_t)include_start-(size_t)subject;
-      
-      (*code_v   )[subject_idx+1]=data_new;
-      (*code_cb_v)[subject_idx+1]=cb_new;
-      (*files_v  )[subject_idx+1]=fn_new;
-      
-      (*code_v   )[subject_idx+2]=include_end;
-      (*code_cb_v)[subject_idx+2]=(size_t)e-(size_t)include_end;
-      // set the file name only if it is the beginning and thus can be freed.
-      (*files_v  )[subject_idx+2]=0;
-      
-      subject=include_end;
-      subject_idx+=2;
-      
-      subject_idx+=handleShaderIncludes(
-        subject_idx-1,
-        code_v,code_cb_v,files_v,code_n,
-        repositoryMask);
-      
-      finalize_stmt:
-      
-      memset(include_start,' ',(size_t)include_end-(size_t)include_start);
-      
-      free((void*)fn);
-      
-      p--;
-      
       next: ;
     }
     p++;
@@ -207,7 +260,7 @@ int handleShaderIncludes(
   return n_added;
 }
 
-void handleShaderIncludes(
+void Shader::_preprocess(
   const char *subject, size_t cc, 
   void ***code_v, size_t **code_cb_v, char ***files_v, size_t *code_n,
   int repositoryMask) {
@@ -225,12 +278,10 @@ void handleShaderIncludes(
   (*code_cb_v)[0]=cc;
   (*files_v  )[0]=0;
   
-  handleShaderIncludes(
+  _preprocess(
     0,
     code_v,code_cb_v,files_v,code_n,
     repositoryMask);
-  
-  
 }
 
 int Shader::attach(const char *code, size_t cc, int mode) {
@@ -264,7 +315,7 @@ int Shader::attach(const char *code, size_t cc, int mode) {
   
   shd=glCreateShader(mode);
   
-  handleShaderIncludes(
+  _preprocess(
     code,cc,
     &code_v,&code_cb_v,&files_v,&code_n,
     REPOSITORY_MASK_SHADER);
@@ -357,12 +408,21 @@ int Shader::link() {
       "WARNING: shader already linked!\n");
     return 1;
   }
+  
+  if (_transformFeedbackVaryings_n) {
+    glTransformFeedbackVaryings(
+      _program,
+      _transformFeedbackVaryings_n,
+      (const GLchar**)_transformFeedbackVaryings_v,
+      _transformFeedbackMode);
+  }
+  
+  
   glLinkProgram(_program);
   
   glGetShaderiv(_program,GL_INFO_LOG_LENGTH,&ccLog);
   if (ccLog) {
     log=(char*)malloc(ccLog+1);
-    printf("%i\n",ccLog);
     glGetShaderInfoLog(_program,ccLog,&ccLog,log);
     LOG_WARNING(
       "WARNING: shader program %i link error:\n %i %s %c\n",
@@ -392,6 +452,13 @@ void Shader::Unbind() {
 
 void Shader::reload() {
   int i=0;
+  size_t idx;
+  char **pstr;
+  
+  FOREACH(idx,pstr,_transformFeedbackVaryings)
+    free((void*)pstr);
+  ARRAY_DESTROY(_transformFeedbackVaryings);
+  
   _linked=0;
   for(i=0;i<SHADER_PROGRAM_COUNT;i++) if (_sourceFiles[i]) {
     if (_shader[i]) {
@@ -417,6 +484,12 @@ timestamp_t Shader::filesTimestamp() {
 
 int Shader::load(const char *fn, int flags) {
   char buf[512];
+  size_t idx;
+  char **pstr;
+  
+  FOREACH(idx,pstr,_transformFeedbackVaryings)
+    free((void*)pstr);
+  ARRAY_DESTROY(_transformFeedbackVaryings);
   
   int i;
   _linked=0;

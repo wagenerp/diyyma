@@ -550,16 +550,27 @@ class LineScanner : public RCObject {
     const char *_data;
     const char *_p, *_end;
     int _newLine;
+    
+    static LineScanner *_temp;
   
   public:
     LineScanner();
     ~LineScanner();
     
+    /** \brief Returns a line scanner instance.
+      * 
+      * The returned scanner is already grabbed so it must always
+      * be dropped.
+      * Using this method allows for reusing a single instance
+      * if no more than one line scanner is used at a time.
+      */
+    static LineScanner *GetTemporary();
+    
     int flags;
     
     void operator=(const char *data);
-    
     void assign(const char *data, size_t cb);
+    void assign(const char *data, const char *e);
     
     size_t tell();
     size_t seek(int offset, int origin);

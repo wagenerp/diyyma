@@ -323,6 +323,25 @@ LineScanner::~LineScanner() {
   
 }
 
+LineScanner *LineScanner::_temp=0;
+
+LineScanner *LineScanner::GetTemporary() {
+  LineScanner *res;
+  if (!_temp) {
+    _temp=new LineScanner();
+    _temp->grab();
+  }
+  
+  if (_temp->refcount()>1) {
+    res=new LineScanner();
+  } else {
+    res=_temp;
+  }
+  res->grab();
+  
+  return res;
+}
+
 void LineScanner::operator=(const char *data) {
   _data=data;
   _p=data;
@@ -332,6 +351,11 @@ void LineScanner::assign(const char *data, size_t cb) {
   _data=data;
   _p=data;
   _end=_data+cb;
+}
+void LineScanner::assign(const char *data, const char *e) {
+  _data=data;
+  _p=data;
+  _end=e;
 }
 
 size_t LineScanner::tell() {
