@@ -329,13 +329,14 @@ CameraSceneNode::~CameraSceneNode() { }
 
 SceneContext CameraSceneNode::context() {
   SceneContext ctx;
+  Matrixf M=absTransform();
   ctx.P=P;
-  ctx.V=absTransform().inverse();
+  ctx.V=M.inverse();
   ctx.M.setIdentity();
   ctx.MV=ctx.V;
   ctx.MVP=ctx.P*ctx.V;
   ctx.time=time;
-  ctx.camPos_w = pos_w;
+  ctx.camPos_w = M*pos_w;
   return ctx;
 }
 
