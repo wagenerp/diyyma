@@ -84,7 +84,14 @@ template <class T> struct Matrix {
       a31(i),a32(j),a33(k),a34(l),
       a41(m),a42(n),a43(o),a44(p) { }
     
-    void set(
+    void set(Matrix<T> m) {
+        a11=m.a11;a12=m.a12;a13=m.a13;a14=m.a14;
+        a21=m.a21;a22=m.a22;a23=m.a23;a24=m.a24;
+        a31=m.a31;a32=m.a32;a33=m.a33;a34=m.a34;
+        a41=m.a41;a42=m.a42;a43=m.a43;a44=m.a44;
+      }
+			
+		void set(
       T a,T b,T c,T d,
       T e,T f,T g,T h,
       T i,T j,T k,T l,
