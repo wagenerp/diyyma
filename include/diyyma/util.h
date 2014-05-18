@@ -188,6 +188,7 @@ timestamp_t file_timestamp(const char *fn);
 #define REPOSITORY_SHADER  2
 #define REPOSITORY_SCRIPT  3
 #define REPOSITORY_MISC    4
+#define REPOSITORY_AUDIO   5
 #define REPOSITORY_COUNT   16
 
 #define REPOSITORY_MASK_TEXTURE 0x01
@@ -195,6 +196,7 @@ timestamp_t file_timestamp(const char *fn);
 #define REPOSITORY_MASK_SHADER  0x04
 #define REPOSITORY_MASK_SCRIPT  0x08
 #define REPOSITORY_MASK_MISC    0x10
+#define REPOSITORY_MASK_AUDIO   0x20
 
 /** \brief Registers a path for loading assets from.
   * \param path Path to register. Must end on a path delimiter.
