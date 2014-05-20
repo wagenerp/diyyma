@@ -138,7 +138,7 @@ Matrixf BezierPath::transformation(double t, int loop) {
   if ((t<=0) || (_points_n==0)) {
     t=0;
     idx=0;
-  } else if (t>(float)(_points_n-1)) {
+  } else if (!loop&&(t>(float)_points_n-1)) {
     t=1;
     idx=_points_n-2;
   } else {
@@ -215,14 +215,14 @@ Vector3f BezierPath::position(double t, int loop) {
   if (_points_n<2) return Vector3f(0,0,0);
   
   if (loop) {
-    t=fmod(t,(float)_points_n-1.0);
+    t=fmod(t,(float)_points_n);
   }
   if ((t<=0) || (_points_n==0)) {
     t=0;
     idx=0;
-  } else if (t>(float)_points_n) {
+  } else if (!loop&&(t>(float)_points_n-1)) {
     t=1;
-    idx=_points_n-1;
+    idx=_points_n-2;
   } else {
     idx=(int)t;
     t-=idx;
