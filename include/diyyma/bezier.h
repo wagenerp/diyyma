@@ -28,9 +28,17 @@ struct BezierPoint {
   int flags;
 };
 
+struct BezierTimePoint {
+  float t_in;
+  float t_out;
+  float a_in;
+  float a_out;
+};
+
 class BezierPath : public RCObject {
   private:
     ARRAY(BezierPoint,_points);
+    ARRAY(BezierTimePoint,_timePoints);
     
   public:
     BezierPath();
@@ -44,6 +52,8 @@ class BezierPath : public RCObject {
     int  segmentCount();
     void setSegmentCount(int n);
     BezierPoint *points();
+    
+    double temporalCorrection(double t, int loop);
     
     Matrixf transformation(double t, int loop);
     Vector3f position(double t, int loop);

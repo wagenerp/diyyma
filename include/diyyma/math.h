@@ -54,6 +54,9 @@ double modf(double a, double b);
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wreorder"
 
+#define BEZIER_CUBIC(p0,p1,p2,p3,s,t) \
+  (s*(s*(s*p0+t*p1) + t*(s*p1+t*p2))  +  t*(s*(s*p1+t*p2) + t*(s*p2+t*p3)))
+
 template <class T> struct Matrix {
   public:
     #if MATRIX_COLUMN_FIRST

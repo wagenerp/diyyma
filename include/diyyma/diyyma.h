@@ -243,7 +243,10 @@ int main(int argn, char **argv) {
           _running=0;
           break;
       }
-      FOREACH(i,pcomp,component) if ((*pcomp)->event(&ev)) goto ev_done;
+      FOREACH(i,pcomp,component) 
+        if (
+          (*pcomp)->enabled
+          &&(*pcomp)->event(&ev)) goto ev_done;
       event(&ev);
       
       ev_done:
@@ -255,7 +258,8 @@ int main(int argn, char **argv) {
     dt=(double)(ticks-ticksLast)*timeScale;
     ticksLast=ticks;
     
-    FOREACH(i,pcomp,component) (*pcomp)->iterate(dt,gTime);
+    FOREACH(i,pcomp,component)
+      if ((*pcomp)->enabled) (*pcomp)->iterate(dt,gTime);
     FOREACH(i,piter,iterator) (*piter)->iterate(dt,gTime);
     iterate(dt,gTime);
     
@@ -265,7 +269,8 @@ int main(int argn, char **argv) {
     if (SDL_GL_GetCurrentContext()!=context)
       SDL_GL_MakeCurrent(window,context);
     render_pre();
-    FOREACH(i,pcomp,component) (*pcomp)->render();
+    FOREACH(i,pcomp,component) 
+      if ((*pcomp)->enabled) (*pcomp)->render();
     render_post();
     SDL_GL_SwapWindow(window);
     #if !AUTORENDER

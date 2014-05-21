@@ -32,10 +32,13 @@
 
 class IComponent : public RCObject {
   public:
+    IComponent() : enabled(1) { }
     virtual ~IComponent() { }
     virtual void render() =0;
     virtual int event(const SDL_Event *ev) =0;
     virtual void iterate(double dt, double time) =0;
+    
+    int enabled;
     
 };
 

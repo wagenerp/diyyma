@@ -9,20 +9,24 @@
 
 BezierPath::BezierPath() : up{0,0,1} {
   ARRAY_INIT(_points);
+  ARRAY_INIT(_timePoints);
 }
 BezierPath::~BezierPath() {
   ARRAY_DESTROY(_points);
+  ARRAY_DESTROY(_timePoints);
 }
 
 void BezierPath::clear() {
   ARRAY_DESTROY(_points);
+  ARRAY_DESTROY(_timePoints);
 }
 
 void BezierPath::load(LineScanner *scanner) {
   SubString str;
   size_t pos;
   
-  BezierPoint newPoint;
+  BezierPoint     newPoint;
+  BezierTimePoint newTimePoint;
   int i;
   
   newPoint.flags=0;
@@ -54,6 +58,10 @@ void BezierPath::load(LineScanner *scanner) {
               &_points_v[_points_n-1].forward.x+i,1))
               goto scan_next;
           _points_v[_points_n-1].flags|=BEZIER_FORWARD_DIRECTION;
+        } else if (str=="t") {
+          for(i=0;i<4;i++)
+            if (!scanner->getFloat(&newTimePoint.t_in+i,1)) goto scan_next;
+          APPEND(_timePoints,newTimePoint);
         } else if (str=="n") {
           scanner->seek(pos,0);
           goto scan_completed;
@@ -124,6 +132,54 @@ BezierPoint *BezierPath::points() {
   return _points_v;
 }
 
+double BezierPath::temporalCorrection(double t, int loop) {
+  double t0,tl, s;
+  int l;
+  if (_points_n<2) return 0;
+  
+  if (_timePoints_n>1) {
+    t0=_timePoints_v[0].t_in;
+    tl=_timePoints_v[_timePoints_n-1].t_in-t0;
+    
+    if (loop) {
+      t=fmod(t-t0,tl);
+      if (t<0) t+=tl;
+      t+=t0;
+    } else {
+      if (t<t0) return 0;
+      if (t>t0+tl) return _points_n-1;
+    }
+    
+    // find the current segment:
+    
+    for(l=0;l<_timePoints_n-1;l++)
+      if (_timePoints_v[l+1].t_in>t) break;
+    
+    t0=_timePoints_v[l].t_in;
+    tl=_timePoints_v[l+1].t_in-t0;
+    t=(t-t0)/tl;
+    s=1-t;
+    
+    t=BEZIER_CUBIC(
+      _timePoints_v[l].t_out,
+      _timePoints_v[l].a_out,
+      _timePoints_v[l+1].a_in,
+      _timePoints_v[l+1].t_out,
+      s,t
+    );
+  }
+  
+  if (loop) {
+    t=fmod(t,(float)_points_n);
+    if (t<0) t+=_points_n;
+  } else {
+    if (t<0) return 0;
+    if (t>_points_n) return _points_n;
+  }
+  
+  return t;
+}
+
 Matrixf BezierPath::transformation(double t, int loop) {
   int idx;
   Vector3f p;
@@ -132,19 +188,11 @@ Matrixf BezierPath::transformation(double t, int loop) {
   
   if (_points_n<2) return Matrixf(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
   
-  if (loop) {
-    t=fmod(t,(float)_points_n-1.0);
-  }
-  if ((t<=0) || (_points_n==0)) {
-    t=0;
-    idx=0;
-  } else if (!loop&&(t>(float)_points_n-1)) {
-    t=1;
-    idx=_points_n-2;
-  } else {
-    idx=(int)t;
-    t-=idx;
-  }
+  t=temporalCorrection(t,loop);
+  
+  idx=(int)t;
+  t-=idx;
+  
   p0=_points_v+((idx  )%_points_n);
   p1=_points_v+((idx+1)%_points_n);
   
@@ -214,19 +262,11 @@ Vector3f BezierPath::position(double t, int loop) {
   
   if (_points_n<2) return Vector3f(0,0,0);
   
-  if (loop) {
-    t=fmod(t,(float)_points_n);
-  }
-  if ((t<=0) || (_points_n==0)) {
-    t=0;
-    idx=0;
-  } else if (!loop&&(t>(float)_points_n-1)) {
-    t=1;
-    idx=_points_n-2;
-  } else {
-    idx=(int)t;
-    t-=idx;
-  }
+  t=temporalCorrection(t,loop);
+  
+  idx=(int)t;
+  t-=idx;
+  
   p0=_points_v+((idx  )%_points_n);
   p1=_points_v+((idx+1)%_points_n);
   
