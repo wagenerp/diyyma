@@ -235,6 +235,169 @@ void SceneNodeRenderPass::iterate(double dt, double time) {
 }
 
 
+
+
+InstanceRenderPass::InstanceRenderPass() :
+  _u_MVP(-1),
+  _u_MV(-1),
+  _u_M(-1),
+  _u_V(-1),
+  _u_P(-1),
+  _u_time(-1),
+  _u_camPos_w(-1)
+  {
+  transformLeft.setIdentity();
+  transformRight.setIdentity();
+  ARRAY_INIT(_nodes);
+  _shaderReferrer=this;
+}
+
+InstanceRenderPass::~InstanceRenderPass() {
+  size_t idx;
+  ISceneNode **pnode;
+  FOREACH(idx,pnode,_nodes) {
+    (*pnode)->drop();
+  }
+  ARRAY_DESTROY(_nodes);
+}
+
+
+void InstanceRenderPass::operator+=(ISceneNode *node) {
+  node->grab();
+  APPEND(_nodes,node);
+}
+
+void InstanceRenderPass::sortByDistance(const Vector3f &origin) {
+  size_t idx;
+  ISceneNode **pnode;
+  int sorted=1;
+  Matrixf transform;
+  
+  if (_distance_n<_nodes_n) 
+    ARRAY_SETSIZE(_distance,_nodes_n);
+  
+  FOREACH(idx,pnode,_nodes) {
+    transform=(*pnode)->absTransform();
+    _distance_v[idx]=(
+      Vector3f(transform.a14,transform.a24,transform.a34)
+      -origin).sqr();
+    
+    if (sorted && (idx>0)&&(_distance_v[idx-1]>_distance_v[idx]))
+      sorted=0;
+  }
+  
+  if (!sorted) 
+    sortByKeys<ISceneNode*,double>(_nodes_v,_distance_v,_nodes_n);
+}
+
+void InstanceRenderPass::sortByDistance() {
+  SceneContext ctx;
+  
+  if (!_contextSource) return;
+  ctx=_contextSource->context();
+  
+  sortByDistance(Vector3f(ctx.MV.a14,ctx.MV.a24,ctx.MV.a34));
+}
+
+void InstanceRenderPass::updateUniforms() {
+  _u_MVP =_shader->locate("u_MVP");
+  _u_MV  =_shader->locate("u_MV");
+  _u_M   =_shader->locate("u_M");
+  _u_V   =_shader->locate("u_V");
+  _u_P   =_shader->locate("u_P");
+  _u_camPos_w=_shader->locate("u_camPos_w");
+  _u_time=_shader->locate("u_time");
+}
+
+void InstanceRenderPass::applyUniforms(SceneContext ctx) {
+  if (-1!=_u_P   ) glUniformMatrix4fv(_u_P  ,1,0,&ctx.P.a11);
+  if (-1!=_u_V   ) glUniformMatrix4fv(_u_V  ,1,0,&ctx.V.a11);
+  if (-1!=_u_MV  ) glUniformMatrix4fv(_u_MV ,1,0,&ctx.MV.a11);
+  if (-1!=_u_MVP ) glUniformMatrix4fv(_u_MVP,1,0,&ctx.MVP.a11);
+  if (-1!=_u_camPos_w) glUniform3fv(_u_camPos_w,1,&ctx.camPos_w.x);
+  if (-1!=_u_time) glUniform1f(_u_time,ctx.time);
+}
+
+
+void InstanceRenderPass::render() {
+  size_t idx;
+  ISceneNode **pnode;
+  SceneContext ctx;
+  Matrixf m, MV, MVP;
+  int i;
+  if (!_contextSource || !_shader || !_nodes_n || !_mesh) {
+    return;
+  }
+  
+  ctx=_contextSource->context();
+  if (flags&RP_SKYMODE) {
+    m=Matrixf(
+      1,0,0, -ctx.V.a14,
+      0,1,0, -ctx.V.a24,
+      0,0,1, -ctx.V.a34,
+      0,0,0, 1);
+    ctx.V*=m;
+    ctx.MV*=m;
+    ctx.MVP*=m;
+  }
+  if (flags&RP_TRANSFORM_LEFT) {
+    ctx.MV=transformLeft*ctx.MV;
+    ctx.MVP=ctx.P*ctx.MV;
+  }
+  
+  if (flags&RP_TRANSFORM_RIGHT) {
+    ctx.MV*=transformRight;
+    ctx.MVP*=transformRight;
+  }
+  
+  if (flags&RP_SORT_NODES) 
+    sortByDistance(Vector3f(ctx.MV.a14,ctx.MV.a24,ctx.MV.a34));
+  beginPass();
+  
+  MV=ctx.MV;
+  MVP=ctx.MVP;
+  
+  _shader->bind();
+  for(i=0;i<8;i++)
+    if (_textures[i] && (_texture_locs[i]!=-1))
+      glUniform1i(_texture_locs[i],_textures[i]->bind());
+  
+  applyUniforms(ctx);
+  if (_lightController) _lightController->activate(_shader,ctx);
+  
+  _mesh->bind();
+  
+  FOREACH(idx,pnode,_nodes) {
+    m=(*pnode)->absTransform();
+    if (-1!=_u_MV  ) { 
+      ctx.MV=MV*m; 
+      glUniformMatrix4fv(_u_MV ,1,0,&ctx.MV.a11); 
+    }
+    
+    if (-1!=_u_MVP ) {
+      ctx.MVP=MVP*m; 
+      glUniformMatrix4fv(_u_MVP,1,0,&ctx.MVP.a11);
+    }
+    
+    _mesh->send();
+  }
+  _mesh->unbind();
+  
+  Texture::Unbind();
+  
+  _shader->unbind();
+  
+  endPass();
+  
+}
+int InstanceRenderPass::event(const SDL_Event *ev) {
+  return 0;
+}
+
+void InstanceRenderPass::iterate(double dt, double time) {
+
+}
+
 const float SCREEN_QUAD_VERTICES[18]={ 
   -1,-1,0, 1,-1,0, 1,1,0,
   1,1,0, -1,1,0, -1,-1,0

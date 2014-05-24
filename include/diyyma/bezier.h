@@ -33,6 +33,12 @@ struct BezierTimePoint {
   float t_out;
   float a_in;
   float a_out;
+  void set(float tin, float tout, float ain, float aout) {
+    t_in=tin;
+    t_out=tout;
+    a_in=ain;
+    a_out=aout;
+  }
 };
 
 class BezierPath : public RCObject {
@@ -52,6 +58,10 @@ class BezierPath : public RCObject {
     int  segmentCount();
     void setSegmentCount(int n);
     BezierPoint *points();
+    
+    int  correctionCount();
+    void setCorrectionCount(int n);
+    BezierTimePoint *timePoints();
     
     double temporalCorrection(double t, int loop);
     

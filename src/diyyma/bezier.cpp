@@ -132,6 +132,23 @@ BezierPoint *BezierPath::points() {
   return _points_v;
 }
 
+int BezierPath::correctionCount() {
+  if (_timePoints_n<2) return 0;
+  return _timePoints_n-1;
+}
+
+void BezierPath::setCorrectionCount(int n) {
+  if (n<1) return;
+  _timePoints_n=n+1;
+  _timePoints_v=(BezierTimePoint*)realloc(
+    (void*)_timePoints_v,
+    sizeof(BezierTimePoint)*_timePoints_n);
+}
+
+BezierTimePoint *BezierPath::timePoints() {
+  return _timePoints_v;
+}
+
 double BezierPath::temporalCorrection(double t, int loop) {
   double t0,tl, s;
   int l;
@@ -174,7 +191,7 @@ double BezierPath::temporalCorrection(double t, int loop) {
     if (t<0) t+=_points_n;
   } else {
     if (t<0) return 0;
-    if (t>_points_n) return _points_n;
+    if (t>_points_n-1) return _points_n-1.0001;
   }
   
   return t;

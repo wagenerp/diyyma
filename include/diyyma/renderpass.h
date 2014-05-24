@@ -172,10 +172,6 @@ class SceneNodeRenderPass :
     ARRAY(IRenderableSceneNode*,_nodes);
     ARRAY(double,_distance);
     
-    ARRAY(GLenum,_drawBuffers);
-    GLuint _frameBufferObject;
-    int _setFBO;
-    
     GLint _u_MVP;
     GLint _u_MV;
     GLint _u_M;
@@ -198,6 +194,49 @@ class SceneNodeRenderPass :
     void sortByDistance();
     
     void operator+=(IRenderableSceneNode *node);
+    
+    virtual void updateUniforms();
+    virtual void applyUniforms(SceneContext ctx);
+    
+    virtual void render();
+    virtual int event(const SDL_Event *ev);
+    virtual void iterate(double dt, double time);
+  
+};
+
+
+class InstanceRenderPass : 
+  public IRenderPass,
+  public ISceneContextReferrer,
+  public IShaderReferrer,
+  public ITextureReferrer<8>,
+  public IStaticMeshReferrer,
+  public ILightControllerReferrer {
+  private:
+    ARRAY(ISceneNode*,_nodes);
+    ARRAY(double,_distance);
+    
+    GLint _u_MVP;
+    GLint _u_MV;
+    GLint _u_M;
+    GLint _u_V;
+    GLint _u_P;
+    GLint _u_time;
+    GLint _u_camPos_w;
+    
+  public:
+    InstanceRenderPass();
+    ~InstanceRenderPass();
+    
+    Matrixf transformLeft;
+    Matrixf transformRight;
+    
+    void sortByDistance(const Vector3f &center);
+    /** \brief sorts by distance to the camera, taken from context()->MV.
+      */
+    void sortByDistance();
+    
+    void operator+=(ISceneNode *node);
     
     virtual void updateUniforms();
     virtual void applyUniforms(SceneContext ctx);
