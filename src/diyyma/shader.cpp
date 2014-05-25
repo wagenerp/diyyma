@@ -243,7 +243,7 @@ int Shader::_preprocess(
         
         
         finalize_pragma:
-        ln->seekNewLine();
+        ln->seekNewLine(0);
         p=p+ln->tell()+7;
         
         ln->drop();

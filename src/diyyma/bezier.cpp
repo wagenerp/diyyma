@@ -68,7 +68,7 @@ void BezierPath::load(LineScanner *scanner) {
         }
         
         scan_next:
-        scanner->seekNewLine();
+        scanner->seekNewLine(0);
         pos=scanner->tell();
         
       } while(scanner->getLnFirstString(&str));

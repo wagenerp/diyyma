@@ -377,7 +377,8 @@ size_t LineScanner::seek(int offset, int origin) {
   return (size_t)p;
 }
 
-int LineScanner::seekNewLine() {
+int LineScanner::seekNewLine(int alwaysAdvance) {
+  if (_newLine&&(!alwaysAdvance)) return 1;
   _newLine=1;
   
   while((_p<_end)&&(*_p!='\n')&&(*_p!='\r')) _p++;
@@ -448,7 +449,7 @@ int LineScanner::getLnString(SubString *res) {
 }
 
 int LineScanner::getLnFirstString(SubString *res) {
-  if (!_newLine && !seekNewLine()) {
+  if (!_newLine && !seekNewLine(0)) {
     res->ptr=0;
     res->length=0;
     return 0;

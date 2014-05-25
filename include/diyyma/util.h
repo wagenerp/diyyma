@@ -584,7 +584,7 @@ class LineScanner : public RCObject {
       * If this sequence does not exist, 0 is returned, otherwise 1 is returned
       * and the stream position is adjusted.
       */
-    int seekNewLine();
+    int seekNewLine(int alwaysAdvance);
     
     /** \brief Reads a single string from the stream.
       *
