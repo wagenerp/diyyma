@@ -116,6 +116,7 @@ int _doRender=0;
 double gTime=0;
 double gTimeOffset=0;
 double gTimeScale=1;
+double gTimeStep=0;
 
 ARRAY(IComponent*,component);
 ARRAY(IIterator*,iterator);
@@ -151,6 +152,7 @@ int main(int argn, char **argv) {
   int            vMinor, vMajor;
   double         timeScale,dt;
   Uint64         ticksLast=0, ticksBegin, ticks;
+  int            frameCount=0;
   
   IComponent   **pcomp;
   IIterator    **piter;
@@ -254,8 +256,13 @@ int main(int argn, char **argv) {
     }
     
     ticks=SDL_GetPerformanceCounter();
-    gTime=(double)(ticks-ticksBegin)*timeScale*gTimeScale+gTimeOffset;
-    dt=(double)(ticks-ticksLast)*timeScale;
+    if (gTimeStep>0) {
+      gTime=frameCount*gTimeStep*gTimeScale+gTimeOffset;
+      dt=gTimeStep;
+    } else {
+      gTime=(double)(ticks-ticksBegin)*timeScale*gTimeScale+gTimeOffset;
+      dt=(double)(ticks-ticksLast)*timeScale;
+    }
     ticksLast=ticks;
     
     FOREACH(i,pcomp,component)
@@ -277,6 +284,8 @@ int main(int argn, char **argv) {
         _doRender=0;
       }
     #endif
+    
+    frameCount++;
   }
   
   cleanup();
