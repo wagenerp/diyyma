@@ -114,6 +114,10 @@ int Shader::_preprocess(
   p=subject; 
   e=subject+cc;
   
+  char *loop_start=0;
+  char *loop_pragma=0;
+  long loop_count=0;
+  
   while(p+11<e) {
     if ((*p<' ')&&(*p!='\t')&&(p[1]=='#')) {
       if (strncmp(p+2,"include ",8)==0) {
@@ -239,17 +243,80 @@ int Shader::_preprocess(
             APPEND(_transformFeedbackVaryings,str.dup());
           }
           
+        } else if (str=="loop-begin") {
+          if (loop_start) {
+            LOG_WARNING(
+              "WARNING: Nested pragma loops not supported (source: %s)\n",
+              (*files_v)[subject_idx]);
+            goto finalize_pragma;
+          }
+          
+          if (!ln->getLong(&loop_count,1) || (loop_count<1)) {
+            LOG_WARNING(
+              "WARNING: loop-begin without valid loop count (source: %s)\n",
+              (*files_v)[subject_idx]);
+            goto finalize_pragma;
+          }
+          ln->seekNewLine(0);
+          loop_pragma=p;
+          loop_start=p+ln->tell()+8;
+          
+          
+        } else if (str=="loop-end") {
+          if (!loop_start) {
+            LOG_WARNING(
+              "WARNING: loop-end without loop-begin (source: %s)\n",
+              (*files_v)[subject_idx]);
+            goto finalize_pragma;
+          }
+          
+          ln->seekNewLine(9);
+          
+          // insert the looped code loop_count times and append the remainder
+          (*code_n)+=loop_count+1;
+          n_added+=loop_count+1;
+          
+          // allocate new arrays
+          *code_v   =(void** )realloc((void*)*code_v,   (*code_n)*sizeof(void*));
+          *code_cb_v=(size_t*)realloc((void*)*code_cb_v,(*code_n)*sizeof(size_t*));
+          *files_v  =(char** )realloc((void*)*files_v,  (*code_n)*sizeof(char*));
+          
+          // shift following files down
+          for(i=*code_n-1;i>subject_idx+loop_count;i--) {
+            (*code_v   )[i]=(*code_v   )[i-loop_count-1];
+            (*code_cb_v)[i]=(*code_cb_v)[i-loop_count-1];
+            (*files_v  )[i]=(*files_v  )[i-loop_count-1];
+          }
+          
+          (*code_cb_v)[subject_idx]=(size_t)loop_pragma-(size_t)subject;
+          
+          subject_idx++;
+          
+          for(i=0;i<loop_count;i++) {
+            (*code_v   )[subject_idx]=loop_start;
+            (*code_cb_v)[subject_idx]=(size_t)p-(size_t)loop_start+1;
+            (*files_v  )[subject_idx]=0;
+            
+            subject_idx++;
+          }
+          
+          subject=p+ln->tell()+8;
+          
+          (*code_v   )[subject_idx]=subject;
+          (*code_cb_v)[subject_idx]=(size_t)e-(size_t)subject;
+          (*files_v  )[subject_idx]=0;
+          
+          loop_start=0;
+          loop_pragma=0;
+          loop_count=0;
+          
         }
-        
         
         finalize_pragma:
         ln->seekNewLine(0);
         p=p+ln->tell()+7;
         
         ln->drop();
-        
-        
-        
       }
       next: ;
     }
@@ -319,6 +386,7 @@ int Shader::attach(const char *code, size_t cc, int mode) {
     code,cc,
     &code_v,&code_cb_v,&files_v,&code_n,
     REPOSITORY_MASK_SHADER);
+    
   
   glShaderSource(shd,code_n,(const char**)code_v,(const int*)code_cb_v);
   
