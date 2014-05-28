@@ -143,6 +143,8 @@ void rand_init() {
   srand(time(0));
 }
 
+SDL_Window *gSDLWindow;
+
 int main(int argn, char **argv) {
   SDL_Window    *window  =0;
   SDL_Renderer  *renderer=0;
@@ -214,6 +216,8 @@ int main(int argn, char **argv) {
     "SDL_GL_GetAttribute")
   
   printf("OpenGL version: %i.%i\n",vMajor,vMinor);
+  
+  gSDLWindow=window;
   
   ASSERTJ(
     init(argn,argv),
