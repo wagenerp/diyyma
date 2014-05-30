@@ -10,7 +10,9 @@ OBJECTS=\
 CC=gcc
 AR=ar
 
-CFLAGS= -I"include" -DIL_STATIC_LIB -DGLEW_NO_GLU -DGLEW_STATIC
+
+CFLAGS= -I"include" -DGLEW_NO_GLU -DGLEW_STATIC -DDIYYMA_DEBUG
+CPPFLAGS= -I"include" -DGLEW_NO_GLU -DGLEW_STATIC -DDIYYMA_DEBUG -std=c++11
 
 all: $(TARGETS)
 
@@ -19,7 +21,7 @@ lib/libdiyyma.a: $(OBJECTS)
 	$(AR) cr $@ $^ 
 
 .cpp.o:
-	$(CC) $(CFLAGS) -c $< -o$@
+	$(CC) $(CPPFLAGS) -c $< -o$@
 
 .c.o:
 	$(CC) $(CFLAGS) -c $< -o$@

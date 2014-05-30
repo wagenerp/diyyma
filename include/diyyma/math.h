@@ -874,6 +874,18 @@ template<class T> struct Vector3 {
       return Vector3<T>(ct*sp,st*sp,cp);
       
     }
+    
+    static Vector3<T> Lissajous(
+      T time,
+      const Vector3<T> &frequency,
+      const Vector3<T> &phase,
+      const Vector3<T> &amplitude) {
+      
+      return Vector3<T>(
+        cos(frequency.x*time+phase.x)*amplitude.x,
+        cos(frequency.y*time+phase.y)*amplitude.y,
+        cos(frequency.z*time+phase.z)*amplitude.z);
+    }
 };
 
 static Vector3f operator*(float f, const Vector3f &v) { return v*f; }

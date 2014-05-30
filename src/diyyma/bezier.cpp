@@ -222,7 +222,6 @@ Matrixf BezierPath::transformation(double t, int loop) {
   
   if ((p0->flags&p1->flags&BEZIER_FORWARD_TARGET)) {
     f=p0->forward*(1-t)+p1->forward*t-p;
-    f.normalize();
   } else if ((p0->flags|p1->flags)&BEZIER_FORWARD_MASK) {
     
     if (p0->flags&BEZIER_FORWARD_TARGET) {
@@ -260,9 +259,9 @@ Matrixf BezierPath::transformation(double t, int loop) {
       p1->anchor_left,
       p1->position,
       t);
-    f.normalize();
   }
   
+  f.normalize();
   l=(up%f).normal();
   u=f%l;
   
