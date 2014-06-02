@@ -20,4 +20,11 @@
 
 #define DEBUG_DIYYMA_SPLINES
 
+/** \brief Enable keeping a list of all opened files.
+  *
+  * Set to 2 or larger to cause readFile and simmilar
+  * functions to append to the list automatically.
+  */
+#define DIYYMA_FILE_LIST 2
+
 #endif

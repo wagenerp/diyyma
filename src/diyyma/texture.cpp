@@ -45,6 +45,10 @@ GLuint loadTextureFile(const char *fn_in, GLuint tex_in,
     goto finalize;
   }
   
+  #if DIYYMA_FILE_LIST>=2
+  file_list_append(fn);
+  #endif
+  
   ilConvertImage(HDR?IL_RGB:IL_RGBA,HDR?IL_FLOAT:IL_UNSIGNED_BYTE);
   
   if (!tex) glGenTextures(1,&tex);

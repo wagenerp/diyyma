@@ -176,6 +176,17 @@ int readFile(const char *fn,void **data, size_t *cb);
 
 int file_exists(const char *fn);
 
+/** \brief Appends a file name to the list of used files.
+  *
+  * Useful for finding deprecated / unused files
+  */
+void file_list_append(const char *fn);
+
+
+/** \brief Writes the file list (see file_list_append) to a given opened file. 
+  */
+void file_list_print(FILE *f);
+
 /** \brief Returns a timestamp for an input file.
   *
   * If the file does not exist, 0 is returned, otherwise a system-specific

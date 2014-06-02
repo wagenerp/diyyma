@@ -22,6 +22,10 @@ int readFile(const char *fn,void **data, size_t *cb) {
   f=fopen(fn,"rb");
   if (!f) return 0;
   
+  #if DIYYMA_FILE_LIST>=2
+  file_list_append(fn);
+  #endif
+  
   fseek(f,0,SEEK_END);
   cbFile=ftell(f);
   fseek(f,0,SEEK_SET);
@@ -53,6 +57,49 @@ int file_exists(const char *fn) {
   
   return (attr!=-1);
 }
+
+#if DIYYMA_FILE_LIST
+struct file_list_t {
+  char *name;
+  int refcount;
+  
+  file_list_t(const char *fn) {
+    name=strdup(fn);
+    refcount=1;
+  }
+};
+file_list_t *_file_list_v=0;
+size_t       _file_list_n=0;
+
+void file_list_append(const char *fn) {
+  size_t idx;
+  file_list_t *pfile;
+  FOREACH(idx,pfile,_file_list) 
+    if (strcmp(fn,pfile->name)==0) {
+      pfile->refcount++;
+      return;
+    }
+  APPEND(_file_list,file_list_t(fn));
+}
+
+void file_list_print(FILE *f) {
+  size_t idx;
+  file_list_t *pfile;
+  FOREACH(idx,pfile,_file_list)
+    fprintf(f,"file '%s' referenced %i times\n",
+      pfile->name,
+      pfile->refcount);
+}
+
+#else
+void file_list_append(const char *fn) {
+}
+
+void file_list_print(FILE *f) {
+}
+
+#endif
+
 
 timestamp_t file_timestamp(const char *fn) {
   HANDLE h=INVALID_HANDLE_VALUE;
