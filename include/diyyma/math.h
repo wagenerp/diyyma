@@ -556,7 +556,7 @@ template<class T> struct Vector4 {
       return (T)sqrt(x*x+y*y+z*z+w*w);
     }
     void length(T l) {
-      this*=l/length;
+      this*=l/length();
     }
     T sqr() const {
       return x*x+y*y+z*z+w*w;
@@ -677,7 +677,7 @@ template<class T> struct Vector3 {
       return (T)sqrt(x*x+y*y+z*z);
     }
     void length(T l) {
-      this*=l/length;
+      this*=l/length();
     }
     T sqr() const {
       return x*x+y*y+z*z;
@@ -954,7 +954,7 @@ template<class T> struct Vector2 {
       return (T)sqrt(x*x+y*y);
     }
     void length(T l) {
-      this*=l/length;
+      this*=l/length();
     }
     T sqr() const {
       return x*x+y*y;
