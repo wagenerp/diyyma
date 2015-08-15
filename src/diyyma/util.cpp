@@ -331,15 +331,15 @@ double randf() {
 }
 
 
-char *strdup(const char *str) {
+char *strdup(const char *str) throw() {
   int l;
   char *res;
   
   l=strlen(str);
-  
+
   res=(char*)malloc(l+1);
   strcpy(res,str);
-  
+
   return res;
   
 }
@@ -410,14 +410,14 @@ size_t LineScanner::tell() {
 }
 
 size_t LineScanner::seek(int offset, int origin) {
-  int p;
+  long p;
   switch(origin) {
     default:
     case 0: p=offset; break;
-    case 1: p=(int)_p-(int)_data+offset; break;
-    case 2: p=(int)_end-(int)_data+offset; break;
+    case 1: p=(long)_p-(long)_data+offset; break;
+    case 2: p=(long)_end-(long)_data+offset; break;
   }
-  if (p<0) p=0; else if (p>(int)_end-(int)_data) p=(int)_end-(int)_data;
+  if (p<0) p=0; else if (p>(long)_end-(long)_data) p=(long)_end-(long)_data;
   
   _p=_data+p;
   

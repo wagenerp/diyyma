@@ -59,6 +59,12 @@
     goto lbl; \
   } \
 }
+#define LOG_MASK_ERROR 0x01
+#define LOG_MASK_WARNING 0x02
+#define LOG_MASK_DEBUG 0x04
+#define LOG_MASK_INFO 0x08
+#define LOG_MASK_DB 0x10
+
 
 #define LOG(mask,...) {if(logMask()&mask) { printf(__VA_ARGS__); fflush(stdout); }}
 #define LOG_ERROR(...) LOG(LOG_MASK_ERROR,__VA_ARGS__)
@@ -66,11 +72,6 @@
 #define LOG_DEBUG(...) LOG(LOG_MASK_DEBUG,__VA_ARGS__)
 #define LOG_INFO(...) LOG(LOG_MASK_INFO,__VA_ARGS__)
 
-#define LOG_MASK_ERROR 0x01
-#define LOG_MASK_WARNING 0x02
-#define LOG_MASK_DEBUG 0x04
-#define LOG_MASK_INFO 0x08
-#define LOG_MASK_DB 0x10
 
 #define LOG_MASK_VERBOSE (LOG_MASK_ERROR|LOG_MASK_WARNING|LOG_MASK_DEBUG|LOG_MASK_INFO|LOG_MASK_DB)
 

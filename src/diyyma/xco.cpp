@@ -428,18 +428,18 @@ int xcor_chunk_close(XCOReaderContext *ctx) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// xco writer
 
 void xcow_ensure_byte_count(XCOWriterContext *ctx, int n) {
-  if ((int)ctx->p+n>(int)ctx->end) {
-    int cb1=(int)(((int)ctx->p-(int)ctx->data+n)/XCO_DEFAULT_BUFSIZE+1)*XCO_DEFAULT_BUFSIZE;
+  if ((long)ctx->p+n>(long)ctx->end) {
+    long cb1=(long)(((long)ctx->p-(long)ctx->data+n)/XCO_DEFAULT_BUFSIZE+1)*XCO_DEFAULT_BUFSIZE;
     
     const char *data0=ctx->data;
     ctx->data=(char*)realloc((void*)ctx->data,cb1);
     
-    int offs=(int)ctx->data-(int)data0;
+    long offs=(long)ctx->data-(long)data0;
     
     ctx->p+=offs;
     ctx->head=(XCOChunkHead*)((char*)ctx->head+offs);
     
-    int i;
+    long i;
     for(i=0;i<ctx->nHeads;i++) ctx->heads[i]=(XCOChunkHead*)((char*)ctx->heads[i]+offs);
     ctx->end=ctx->data+cb1;
   }
@@ -470,7 +470,7 @@ int xcow_create(XCOWriterContext **ctx) {
   (*ctx)->p  +=sizeof(XCOChunkHead);
   
   (*ctx)->head->id=XCO_TOKEN;
-  (*ctx)->head->offsData=(int)(*ctx)->p-(int)(*ctx)->data;
+  (*ctx)->head->offsData=(long)(*ctx)->p-(long)(*ctx)->data;
   (*ctx)->head->nChunks=0;
   (*ctx)->head->flags=0;
   
@@ -496,7 +496,7 @@ int xcow_chunk_new(XCOWriterContext *ctx, uint id) {
   if (ctx->chunkMode) {
     ctx->head->nChunks++;
   } else {
-    ctx->head->offsChunks=(int)ctx->p-(int)ctx->data;
+    ctx->head->offsChunks=(long)ctx->p-(long)ctx->data;
     ctx->head->nChunks=1;
   }
   
@@ -506,7 +506,7 @@ int xcow_chunk_new(XCOWriterContext *ctx, uint id) {
   ctx->p  +=sizeof(XCOChunkHead);
   
   ctx->head->id=id;
-  ctx->head->offsData=(int)ctx->p-(int)ctx->data;
+  ctx->head->offsData=(long)ctx->p-(long)ctx->data;
   ctx->head->nChunks=0;
   ctx->head->flags=0;
   
@@ -520,8 +520,8 @@ int xcow_chunk_new(XCOWriterContext *ctx, uint id) {
 int xcow_chunk_close(XCOWriterContext *ctx) {
   if (ctx->nHeads<2) XCOERR(XCO_ERR_NO_PARENT,0);
   
-  ctx->head->size=sizeof(XCOChunkHead)+(int)ctx->p-(int)ctx->data-ctx->head->offsData;
-  ctx->head->offsEnd=(int)ctx->p-(int)ctx->data;
+  ctx->head->size=sizeof(XCOChunkHead)+(long)ctx->p-(long)ctx->data-ctx->head->offsData;
+  ctx->head->offsEnd=(long)ctx->p-(long)ctx->data;
   
   if (!ctx->chunkMode) ctx->head->offsChunks=ctx->head->offsEnd;
   
@@ -536,7 +536,7 @@ int xcow_chunk_close(XCOWriterContext *ctx) {
 int xcow_finalize(XCOWriterContext *ctx) {
   while(ctx->nHeads>1) xcow_chunk_close(ctx);
   
-  int dp=(int)ctx->p-(int)ctx->data;
+  long dp=(long)ctx->p-(long)ctx->data;
   
   if (!ctx->chunkMode) ctx->head->offsChunks=dp;
   
@@ -552,7 +552,7 @@ int xcow_reset(XCOWriterContext *ctx) {
   
   ctx->head->id=XCO_TOKEN;
   ctx->head->size=0;
-  ctx->head->offsData=(int)ctx->p-(int)ctx->data;
+  ctx->head->offsData=(long)ctx->p-(long)ctx->data;
   ctx->head->offsChunks=0;
   ctx->head->offsEnd=0;
   ctx->head->nChunks=0;
