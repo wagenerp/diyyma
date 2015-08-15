@@ -74,6 +74,7 @@ int FPSCameraComponent::event(const SDL_Event *ev) {
         case SDLK_LALT:   i=11; break;
       }
       if (i>-1) {
+        if (_keys==0) _first=true;
         _keys|=1<<i;
         if (ev->type==SDL_KEYUP) _keys^=1<<i;
         return true;
@@ -113,7 +114,13 @@ void FPSCameraComponent::iterate(double dt, double time) {
   Matrixf VInv;
   _time=time;
   
+  
   if (_keys) {
+    interval(0.015);
+    if (_first) {
+      _first=false;
+      return;
+    }
     s=dt*12*speed;
     
     if (_keys&0x400) s*=50;
