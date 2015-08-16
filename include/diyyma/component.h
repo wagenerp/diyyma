@@ -16,7 +16,7 @@
 #include "diyyma/scenegraph.h"
 #include "diyyma/texture.h"
 
-#include "SDL/SDL.h"
+#include "SDL2/SDL.h"
 #include "GL/glew.h"
 
 /** \brief Interface for application modules (components).
