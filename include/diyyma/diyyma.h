@@ -147,6 +147,8 @@ int main(int argn, char **argv) {
   double         timeScale,dt;
   Uint64         ticksLast=0, ticksBegin, ticks;
   int            frameCount=0;
+  double         timeout;
+  int            timeout_ms;
   
   IComponent   **pcomp;
   IIterator    **piter;
@@ -226,15 +228,18 @@ int main(int argn, char **argv) {
   _running=1;
   _doRender=1;
   while(_running) {
-    #if ITERATE_TIMEOUT==0
+    timeout=queryInterval();
+    if (timeout<0) timeout_ms=ITERATE_TIMEOUT;
+    else timeout_ms=(int)(timeout*1000);
+    
+    if (timeout_ms==0) {
       r=SDL_PollEvent(&ev);
-    #else
-    #if ITERATE_TIMEOUT>-1 
-      r=SDL_WaitEventTimeout(&ev,ITERATE_TIMEOUT);
-    #else
+    } else if (timeout_ms>-1) {
+      r=SDL_WaitEventTimeout(&ev,timeout_ms);
+    } else {
       r=SDL_WaitEvent(&ev);
-    #endif
-    #endif
+    }
+    
     while(r) {
       switch(ev.type) {
         case SDL_QUIT:

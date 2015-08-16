@@ -354,6 +354,18 @@ class IAsset : public RCObject {
     
 };
 
+/** \brief requests the game loop to iterate again no less than a specified
+  * amount of time, in seconds.
+ *
+ */
+void interval(double t);
+
+/** \brief Returns the shortest requested iteration interval since the last
+  * call to queryInterval.
+  */
+double queryInterval();
+
+
 /** \brief Common interface for anything that iterates - mostly scene nodes.*/
 class IIterator {
   public:
@@ -418,7 +430,7 @@ template<class T, class K> void sortByKeys(T *objects, K *keys, size_t n) {
 
 double randf();
 
-char *strdup(const char *str);
+char *strdup(const char *str) throw();
 int strcmp_ic(const char *a, const char *b);
 
 /** \brief Asset manager for a single type of asset. 

@@ -332,6 +332,20 @@ void RCObject::ListObjects() {
 
 #endif
 
+static double _interval=-1;
+
+void interval(double t) {
+  if ((t<=0) || !(t>-1)) return;
+  if ((_interval<0) || (t<_interval)) _interval=t;
+}
+
+double queryInterval() {
+  double r=_interval;
+  _interval=-1;
+  return r;
+}
+
+
 double randf() {
   return (double)rand()/(double)RAND_MAX;
 }
