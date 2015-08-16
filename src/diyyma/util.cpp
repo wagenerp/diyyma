@@ -130,12 +130,18 @@ timestamp_t file_timestamp(const char *fn) {
 #include <unistd.h>
 
 int file_exists(const char *str) {
-  return access(str,F_OK);
+  return access(str,F_OK) != -1;
 }
 
 timestamp_t file_timestamp(const char *fn) {
 #pragma message "WARNING: file_timestamp not yet implemented for this environment!"
   return 0;
+}
+
+void file_list_append(const char *fn) {
+}
+
+void file_list_print(FILE *f) {
 }
 
 #endif

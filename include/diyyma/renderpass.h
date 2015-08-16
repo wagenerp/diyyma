@@ -17,7 +17,7 @@
 #include "diyyma/util.h"
 #include "diyyma/math.h"
 
-#include "SDL/SDL.h"
+#include "SDL2/SDL.h"
 
 /** \brief Causes the render pass to bind a designated frame buffer object
   * when rendering.
